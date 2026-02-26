@@ -1,0 +1,1682 @@
+import { useEffect, useMemo, useState } from "react";
+import EditModal from "../components/EditModal";
+import {
+  adoptResourceAiTags,
+  apiRequest,
+  bulkManageResources,
+  createTag,
+  fetchTags,
+  formatTime,
+  listAdminResources,
+  listTrashItems,
+  notifyResourcesChanged,
+  purgeExpiredTrash,
+  purgeTrashItem,
+  reconcileStorage,
+  reorderTags,
+  restoreTrashItem,
+  setResourceVisibility,
+  updateResourceTags,
+  updateTag
+} from "../lib/api";
+
+const STAGE = "senior";
+const SUBJECT = "物理";
+const GRADE_OPTIONS = ["高一", "高二", "高三"];
+const TEXTBOOK_PRESETS = ["人教版", "其他"];
+const TAG_CATEGORY_OPTIONS = [
+  { value: "mechanics", label: "力学" },
+  { value: "electromagnetism", label: "电磁学" },
+  { value: "thermodynamics", label: "热学" },
+  { value: "optics", label: "光学" },
+  { value: "modern_physics", label: "近代物理" },
+  { value: "experiment", label: "实验" },
+  { value: "problem_solving", label: "解题" },
+  { value: "other", label: "其他" }
+];
+const APPROVE_NOTE_TEMPLATES = [
+  "内容规范，可公开",
+  "分类准确，资源可用",
+  "资源质量良好，建议发布"
+];
+const REJECT_NOTE_TEMPLATES = [
+  "内容与章节不匹配",
+  "文件无法正常预览",
+  "内容质量不足",
+  "存在重复资源"
+];
+
+function defaultChapterForm(firstVolume = null) {
+  return {
+    grade: "高一",
+    volume_code: firstVolume?.code || "",
+    volume_name: firstVolume?.name || "",
+    volume_order: firstVolume?.order || 10,
+    chapter_order: 10,
+    chapter_code: "",
+    title: "",
+    chapter_keywords: "",
+    textbook_mode: "人教版",
+    textbook_custom: "",
+    is_enabled: true
+  };
+}
+
+function chapterToForm(chapter) {
+  const known = TEXTBOOK_PRESETS.includes(chapter.textbook || "") ? chapter.textbook : "其他";
+  return {
+    grade: chapter.grade,
+    volume_code: chapter.volume_code || "",
+    volume_name: chapter.volume_name || "",
+    volume_order: chapter.volume_order || 10,
+    chapter_order: chapter.chapter_order || 10,
+    chapter_code: chapter.chapter_code,
+    title: chapter.title,
+    chapter_keywords: (chapter.chapter_keywords || []).join("，"),
+    textbook_mode: known,
+    textbook_custom: known === "其他" ? chapter.textbook || "" : "",
+    is_enabled: chapter.is_enabled
+  };
+}
+
+function defaultSectionForm() {
+  return {
+    code: "",
+    name: "",
+    description: "",
+    sort_order: 100,
+    is_enabled: true
+  };
+}
+
+function normalizeSectionCode(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replaceAll("_", "-")
+    .replaceAll(" ", "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function sectionToForm(section) {
+  return {
+    code: section.code,
+    name: section.name,
+    description: section.description || "",
+    sort_order: section.sort_order,
+    is_enabled: section.is_enabled
+  };
+}
+
+function defaultTagForm() {
+  return {
+    tag: "",
+    category: "mechanics",
+    sort_order: 100,
+    is_enabled: true
+  };
+}
+
+function tagToForm(tag) {
+  return {
+    tag: tag.tag,
+    category: tag.category,
+    sort_order: tag.sort_order,
+    is_enabled: tag.is_enabled
+  };
+}
+
+function tagsToCsv(tags) {
+  if (!Array.isArray(tags) || !tags.length) {
+    return "";
+  }
+  return tags.join("，");
+}
+
+function parseTagInput(value) {
+  return String(value || "")
+    .split(/[，,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [activeTab, setActiveTab] = useState("resources");
+  const [managedItems, setManagedItems] = useState([]);
+  const [resourceFilters, setResourceFilters] = useState({
+    q: "",
+    status: "all",
+    chapterId: "",
+    sectionId: "",
+    author: ""
+  });
+  const [selectedResourceIds, setSelectedResourceIds] = useState([]);
+  const [bulkAction, setBulkAction] = useState("hide");
+  const [bulkNote, setBulkNote] = useState("");
+  const [pendingItems, setPendingItems] = useState([]);
+  const [chapters, setChapters] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [sectionFilter, setSectionFilter] = useState("");
+  const [sectionStatus, setSectionStatus] = useState("all");
+  const [tagFilter, setTagFilter] = useState("");
+  const [tagStatus, setTagStatus] = useState("all");
+  const [trashItems, setTrashItems] = useState([]);
+  const [trashScope, setTrashScope] = useState("all");
+  const [trashQuery, setTrashQuery] = useState("");
+  const [trashPage, setTrashPage] = useState(1);
+  const [trashPageSize] = useState(20);
+  const [trashTotal, setTrashTotal] = useState(0);
+  const [trashLoading, setTrashLoading] = useState(false);
+
+  const [reviewModal, setReviewModal] = useState({
+    open: false,
+    resourceId: null,
+    status: "approved",
+    template: "",
+    extra: ""
+  });
+  const [chapterModal, setChapterModal] = useState({
+    open: false,
+    mode: "create",
+    chapterId: null,
+    form: defaultChapterForm()
+  });
+  const [sectionModal, setSectionModal] = useState({
+    open: false,
+    mode: "create",
+    sectionId: null,
+    form: defaultSectionForm()
+  });
+  const [tagModal, setTagModal] = useState({
+    open: false,
+    mode: "create",
+    tagId: null,
+    form: defaultTagForm()
+  });
+  const [resourceTagModal, setResourceTagModal] = useState({
+    open: false,
+    resourceId: null,
+    title: "",
+    tagsText: "",
+    mode: "replace"
+  });
+  const [catalogAudit, setCatalogAudit] = useState(null);
+
+  const volumeOptions = useMemo(() => {
+    const grouped = new Map();
+    for (const chapter of chapters) {
+      const key = chapter.volume_code || "";
+      if (!key || grouped.has(key)) {
+        continue;
+      }
+      grouped.set(key, {
+        code: key,
+        name: chapter.volume_name || key,
+        order: chapter.volume_order || 999
+      });
+    }
+    return Array.from(grouped.values()).sort((a, b) => (a.order - b.order) || a.code.localeCompare(b.code, "zh-CN"));
+  }, [chapters]);
+  const strictCatalog = Boolean(catalogAudit?.strict_enabled);
+
+  async function loadAll() {
+    if (!token || role !== "admin") {
+      setManagedItems([]);
+      setPendingItems([]);
+      setChapters([]);
+      setSections([]);
+      setTags([]);
+      setCatalogAudit(null);
+      return;
+    }
+
+    try {
+      const [pendingData, chapterData, sectionData, tagData, auditData] = await Promise.all([
+        apiRequest("/api/resources/pending", { token }),
+        apiRequest(`/api/chapters?stage=${STAGE}&subject=${encodeURIComponent(SUBJECT)}`, { token }),
+        apiRequest(`/api/sections?stage=${STAGE}&subject=${encodeURIComponent(SUBJECT)}`, { token }),
+        fetchTags({ token, stage: STAGE, subject: SUBJECT }),
+        apiRequest(`/api/chapters/catalog-audit?stage=${STAGE}&subject=${encodeURIComponent(SUBJECT)}`, { token })
+      ]);
+      setPendingItems(pendingData || []);
+      setChapters(chapterData || []);
+      setSections(sectionData || []);
+      setTags(tagData || []);
+      setCatalogAudit(auditData || null);
+      await loadManagedResources();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function loadManagedResources() {
+    if (!token || role !== "admin") {
+      setManagedItems([]);
+      return;
+    }
+    try {
+      const rows = await listAdminResources({
+        token,
+        q: resourceFilters.q,
+        status: resourceFilters.status === "all" ? "" : resourceFilters.status,
+        chapterId: resourceFilters.chapterId,
+        sectionId: resourceFilters.sectionId,
+        subject: SUBJECT
+      });
+      const authorFilter = resourceFilters.author.trim();
+      const filtered = authorFilter
+        ? (rows || []).filter((item) => String(item.author_id || "").includes(authorFilter))
+        : (rows || []);
+      setManagedItems(filtered);
+      setSelectedResourceIds((prev) => prev.filter((id) => filtered.some((item) => item.id === id)));
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handleSyncStrictCatalog() {
+    try {
+      const result = await apiRequest("/api/chapters/sync-strict", {
+        method: "POST",
+        token
+      });
+      setGlobalMessage(
+        `目录同步完成：新增 ${result.created_count}，更新 ${result.updated_count}，禁用 ${result.disabled_count}`
+      );
+      await loadAll();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function loadTrash(targetPage = trashPage) {
+    if (!token || role !== "admin") {
+      setTrashItems([]);
+      setTrashTotal(0);
+      return;
+    }
+
+    setTrashLoading(true);
+    try {
+      const data = await listTrashItems({
+        token,
+        scope: trashScope === "all" ? "" : trashScope,
+        q: trashQuery,
+        page: targetPage,
+        pageSize: trashPageSize
+      });
+      setTrashItems(data?.items || []);
+      setTrashTotal(data?.total || 0);
+      setTrashPage(data?.page || targetPage);
+    } catch (error) {
+      setGlobalMessage(error.message);
+    } finally {
+      setTrashLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const panel = new URLSearchParams(window.location.search).get("panel");
+    if (panel === "trash") {
+      setActiveTab("trash");
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, role]);
+
+  useEffect(() => {
+    loadManagedResources();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, role, resourceFilters.q, resourceFilters.status, resourceFilters.chapterId, resourceFilters.sectionId, resourceFilters.author]);
+
+  useEffect(() => {
+    loadTrash(trashPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, role, trashScope, trashQuery, trashPage, trashPageSize]);
+
+  async function handleLogin(event) {
+    event.preventDefault();
+    try {
+      await onLogin(loginForm);
+      setLoginForm({ email: "", password: "" });
+      setGlobalMessage("登录成功");
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  function openReviewModal(resourceId, status) {
+    const defaultTemplate = status === "approved" ? APPROVE_NOTE_TEMPLATES[0] : REJECT_NOTE_TEMPLATES[0];
+    setReviewModal({
+      open: true,
+      resourceId,
+      status,
+      template: defaultTemplate,
+      extra: ""
+    });
+  }
+
+  async function submitReview(event) {
+    event.preventDefault();
+    if (!reviewModal.resourceId) {
+      return;
+    }
+    const note = [reviewModal.template.trim(), reviewModal.extra.trim()].filter(Boolean).join("；");
+
+    try {
+      await apiRequest(`/api/resources/${reviewModal.resourceId}/review`, {
+        method: "PATCH",
+        token,
+        body: {
+          status: reviewModal.status,
+          review_note: note || null
+        }
+      });
+      setReviewModal({
+        open: false,
+        resourceId: null,
+        status: "approved",
+        template: "",
+        extra: ""
+      });
+      setGlobalMessage(`审核已更新：${reviewModal.status}`);
+      notifyResourcesChanged();
+      await loadAll();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handleDeleteResource(resourceId) {
+    const ok = window.confirm(`确认将资源 #${resourceId} 移入回收站吗？`);
+    if (!ok) {
+      return;
+    }
+    try {
+      await apiRequest(`/api/resources/${resourceId}`, {
+        method: "DELETE",
+        token
+      });
+      setGlobalMessage(`资源 #${resourceId} 已移入回收站`);
+      notifyResourcesChanged();
+      await loadAll();
+      await loadTrash(1);
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handleSetVisibility(resourceId, visibility) {
+    try {
+      await setResourceVisibility(resourceId, visibility, token);
+      setGlobalMessage(visibility === "public" ? "资源已公开" : "资源已设为不公开");
+      notifyResourcesChanged();
+      await loadManagedResources();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  function openResourceTagModal(item) {
+    setResourceTagModal({
+      open: true,
+      resourceId: item.id,
+      title: item.title,
+      tagsText: tagsToCsv(item.tags || []),
+      mode: "replace"
+    });
+  }
+
+  async function submitResourceTags(event) {
+    event.preventDefault();
+    if (!resourceTagModal.resourceId) {
+      return;
+    }
+    try {
+      await updateResourceTags(
+        resourceTagModal.resourceId,
+        {
+          tags: parseTagInput(resourceTagModal.tagsText),
+          mode: resourceTagModal.mode
+        },
+        token
+      );
+      setGlobalMessage("资源标签已更新");
+      setResourceTagModal({
+        open: false,
+        resourceId: null,
+        title: "",
+        tagsText: "",
+        mode: "replace"
+      });
+      notifyResourcesChanged();
+      await loadManagedResources();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handleAdoptAiTags(resourceId, strategy = "merge") {
+    try {
+      await adoptResourceAiTags(resourceId, { strategy }, token);
+      setGlobalMessage(strategy === "replace" ? "已用 AI 标签覆盖人工标签" : "AI 标签已合并到人工标签");
+      notifyResourcesChanged();
+      await loadManagedResources();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  function toggleResourceSelection(resourceId) {
+    setSelectedResourceIds((prev) => (
+      prev.includes(resourceId)
+        ? prev.filter((id) => id !== resourceId)
+        : [...prev, resourceId]
+    ));
+  }
+
+  function toggleSelectAllManaged() {
+    if (!managedItems.length) {
+      return;
+    }
+    if (selectedResourceIds.length === managedItems.length) {
+      setSelectedResourceIds([]);
+      return;
+    }
+    setSelectedResourceIds(managedItems.map((item) => item.id));
+  }
+
+  async function handleBulkManage() {
+    if (!selectedResourceIds.length) {
+      setGlobalMessage("请先勾选资源");
+      return;
+    }
+    const actionLabel = bulkAction === "publish" ? "公开" : bulkAction === "hide" ? "不公开" : "删除到回收站";
+    const ok = window.confirm(`确认批量执行「${actionLabel}」吗？`);
+    if (!ok) {
+      return;
+    }
+    try {
+      const result = await bulkManageResources(
+        {
+          resource_ids: selectedResourceIds,
+          action: bulkAction,
+          note: bulkNote.trim() || null
+        },
+        token
+      );
+      setGlobalMessage(
+        `批量操作完成：成功 ${result.succeeded}，失败 ${result.failed}`
+      );
+      setSelectedResourceIds([]);
+      setBulkNote("");
+      notifyResourcesChanged();
+      await loadAll();
+      if (bulkAction === "trash") {
+        await loadTrash(1);
+      }
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  function openChapterModal(mode, chapter = null) {
+    setChapterModal({
+      open: true,
+      mode,
+      chapterId: chapter?.id || null,
+      form: chapter ? chapterToForm(chapter) : defaultChapterForm(volumeOptions[0] || null)
+    });
+  }
+
+  async function submitChapter(event) {
+    event.preventDefault();
+    const textbook =
+      chapterModal.form.textbook_mode === "其他"
+        ? chapterModal.form.textbook_custom.trim() || null
+        : chapterModal.form.textbook_mode;
+    const parsedKeywords = chapterModal.form.chapter_keywords
+      .split(/[，,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    try {
+      if (chapterModal.mode === "create") {
+        await apiRequest("/api/chapters", {
+          method: "POST",
+          token,
+          body: {
+            stage: STAGE,
+            subject: SUBJECT,
+            grade: chapterModal.form.grade,
+            textbook,
+            volume_code: chapterModal.form.volume_code,
+            volume_name: chapterModal.form.volume_name,
+            volume_order: Number(chapterModal.form.volume_order) || 10,
+            chapter_order: Number(chapterModal.form.chapter_order) || 10,
+            chapter_code: chapterModal.form.chapter_code.trim(),
+            title: chapterModal.form.title.trim(),
+            chapter_keywords: parsedKeywords
+          }
+        });
+        setGlobalMessage("章节已新增");
+      } else {
+        const updateBody = strictCatalog
+          ? {
+              grade: chapterModal.form.grade,
+              textbook,
+              chapter_order: Number(chapterModal.form.chapter_order) || 10,
+              chapter_keywords: parsedKeywords,
+              is_enabled: chapterModal.form.is_enabled
+            }
+          : {
+              grade: chapterModal.form.grade,
+              volume_code: chapterModal.form.volume_code,
+              volume_name: chapterModal.form.volume_name,
+              volume_order: Number(chapterModal.form.volume_order) || 10,
+              chapter_order: Number(chapterModal.form.chapter_order) || 10,
+              chapter_code: chapterModal.form.chapter_code.trim(),
+              title: chapterModal.form.title.trim(),
+              textbook,
+              chapter_keywords: parsedKeywords,
+              is_enabled: chapterModal.form.is_enabled
+            };
+        await apiRequest(`/api/chapters/${chapterModal.chapterId}`, {
+          method: "PATCH",
+          token,
+          body: updateBody
+        });
+        setGlobalMessage("章节已更新");
+      }
+      setChapterModal({ open: false, mode: "create", chapterId: null, form: defaultChapterForm(volumeOptions[0] || null) });
+      await loadAll();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  function openSectionModal(mode, section = null) {
+    setSectionModal({
+      open: true,
+      mode,
+      sectionId: section?.id || null,
+      form: section ? sectionToForm(section) : defaultSectionForm()
+    });
+  }
+
+  async function submitSection(event) {
+    event.preventDefault();
+    const payload = {
+      code: normalizeSectionCode(sectionModal.form.code),
+      name: sectionModal.form.name.trim(),
+      description: sectionModal.form.description.trim() || null,
+      sort_order: Number(sectionModal.form.sort_order) || 100,
+      is_enabled: sectionModal.form.is_enabled
+    };
+
+    try {
+      if (sectionModal.mode === "create") {
+        await apiRequest("/api/sections", {
+          method: "POST",
+          token,
+          body: {
+            stage: STAGE,
+            subject: SUBJECT,
+            ...payload
+          }
+        });
+        setGlobalMessage("板块已新增");
+      } else {
+        await apiRequest(`/api/sections/${sectionModal.sectionId}`, {
+          method: "PATCH",
+          token,
+          body: payload
+        });
+        setGlobalMessage("板块已更新");
+      }
+      setSectionModal({ open: false, mode: "create", sectionId: null, form: defaultSectionForm() });
+      await loadAll();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function moveSection(sectionId, direction) {
+    const ordered = [...sections].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
+    const index = ordered.findIndex((item) => item.id === sectionId);
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (index < 0 || targetIndex < 0 || targetIndex >= ordered.length) {
+      return;
+    }
+    const swapped = [...ordered];
+    [swapped[index], swapped[targetIndex]] = [swapped[targetIndex], swapped[index]];
+    const items = swapped.map((item, idx) => ({ id: item.id, sort_order: (idx + 1) * 10 }));
+
+    try {
+      await apiRequest("/api/sections/reorder", {
+        method: "POST",
+        token,
+        body: { items }
+      });
+      setGlobalMessage("板块排序已更新");
+      await loadAll();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  function openTagModal(mode, tag = null) {
+    setTagModal({
+      open: true,
+      mode,
+      tagId: tag?.id || null,
+      form: tag ? tagToForm(tag) : defaultTagForm()
+    });
+  }
+
+  async function submitTag(event) {
+    event.preventDefault();
+    const payload = {
+      tag: tagModal.form.tag.trim(),
+      category: tagModal.form.category,
+      sort_order: Number(tagModal.form.sort_order) || 100,
+      is_enabled: tagModal.form.is_enabled
+    };
+
+    try {
+      if (tagModal.mode === "create") {
+        await createTag(
+          {
+            stage: STAGE,
+            subject: SUBJECT,
+            ...payload
+          },
+          token
+        );
+        setGlobalMessage("标签已新增");
+      } else {
+        await updateTag(tagModal.tagId, payload, token);
+        setGlobalMessage("标签已更新");
+      }
+      setTagModal({ open: false, mode: "create", tagId: null, form: defaultTagForm() });
+      await loadAll();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function moveTag(tagId, direction) {
+    const ordered = [...tags].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
+    const index = ordered.findIndex((item) => item.id === tagId);
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (index < 0 || targetIndex < 0 || targetIndex >= ordered.length) {
+      return;
+    }
+    const swapped = [...ordered];
+    [swapped[index], swapped[targetIndex]] = [swapped[targetIndex], swapped[index]];
+    const items = swapped.map((item, idx) => ({ id: item.id, sort_order: (idx + 1) * 10 }));
+
+    try {
+      await reorderTags(items, token);
+      setGlobalMessage("标签排序已更新");
+      await loadAll();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handleRestoreTrash(itemId) {
+    try {
+      const result = await restoreTrashItem(itemId, token);
+      setGlobalMessage(result?.message || "已恢复");
+      notifyResourcesChanged();
+      await loadTrash(trashPage);
+      await loadAll();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handlePurgeTrash(itemId) {
+    const ok = window.confirm("确认彻底删除该回收项吗？该操作不可恢复。");
+    if (!ok) {
+      return;
+    }
+    try {
+      const result = await purgeTrashItem(itemId, token);
+      setGlobalMessage(result?.message || "已彻底删除");
+      await loadTrash(trashPage);
+      await loadAll();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handlePurgeExpired() {
+    try {
+      const result = await purgeExpiredTrash(token, 2000);
+      setGlobalMessage(`过期清理完成：${result?.purged_count || 0} 条`);
+      await loadTrash(1);
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handleReconcile() {
+    try {
+      const result = await reconcileStorage({ token });
+      setGlobalMessage(
+        `对账完成：扫描 ${result.scanned_count}，缺失 ${result.missing_count}，入回收站 ${result.trashed_count}`
+      );
+      await loadTrash(1);
+      await loadAll();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  const orderedSections = useMemo(
+    () => [...sections].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id),
+    [sections]
+  );
+  const filteredSections = useMemo(() => {
+    const keyword = sectionFilter.trim().toLowerCase();
+    return orderedSections.filter((item) => {
+      const statusOk =
+        sectionStatus === "all" ||
+        (sectionStatus === "enabled" && item.is_enabled) ||
+        (sectionStatus === "disabled" && !item.is_enabled);
+      const text = `${item.name} ${item.code} ${item.description || ""}`.toLowerCase();
+      return statusOk && (!keyword || text.includes(keyword));
+    });
+  }, [orderedSections, sectionFilter, sectionStatus]);
+
+  const orderedTags = useMemo(
+    () => [...tags].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id),
+    [tags]
+  );
+  const filteredTags = useMemo(() => {
+    const keyword = tagFilter.trim().toLowerCase();
+    return orderedTags.filter((item) => {
+      const statusOk =
+        tagStatus === "all" ||
+        (tagStatus === "enabled" && item.is_enabled) ||
+        (tagStatus === "disabled" && !item.is_enabled);
+      const text = `${item.tag} ${item.category}`.toLowerCase();
+      return statusOk && (!keyword || text.includes(keyword));
+    });
+  }, [orderedTags, tagFilter, tagStatus]);
+
+  const chapterMap = useMemo(() => {
+    const map = {};
+    for (const row of chapters) {
+      map[row.id] = `${row.chapter_code} ${row.title}`;
+    }
+    return map;
+  }, [chapters]);
+
+  const sectionMap = useMemo(() => {
+    const map = {};
+    for (const row of sections) {
+      map[row.id] = row.name;
+    }
+    return map;
+  }, [sections]);
+
+  const managedOrdered = useMemo(
+    () => [...managedItems].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)),
+    [managedItems]
+  );
+
+  const statusLabel = {
+    pending: "待审核",
+    approved: "公开",
+    rejected: "驳回",
+    hidden: "不公开"
+  };
+
+  if (!token) {
+    return (
+      <section className="card">
+        <h2>管理后台</h2>
+        <p className="hint">该页面需管理员登录</p>
+        <form onSubmit={handleLogin}>
+          <input
+            type="text"
+            placeholder="管理员账号"
+            value={loginForm.email}
+            onChange={(event) => setLoginForm({ ...loginForm, email: event.target.value })}
+            required
+          />
+          <input
+            type="password"
+            placeholder="密码"
+            value={loginForm.password}
+            onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+            required
+          />
+          <button type="submit">登录</button>
+        </form>
+      </section>
+    );
+  }
+
+  if (role !== "admin") {
+    return (
+      <section className="card">
+        <h2>管理后台</h2>
+        <p className="hint">当前账号无管理员权限</p>
+      </section>
+    );
+  }
+
+  const reviewTemplates = reviewModal.status === "approved" ? APPROVE_NOTE_TEMPLATES : REJECT_NOTE_TEMPLATES;
+  const totalTrashPages = Math.max(1, Math.ceil((trashTotal || 0) / trashPageSize));
+
+  return (
+    <>
+      <section className="card">
+        <h2>管理后台</h2>
+        <div className="type-tabs">
+          <button type="button" className={activeTab === "resources" ? "active" : ""} onClick={() => setActiveTab("resources")}>
+            资源管理
+          </button>
+          <button type="button" className={activeTab === "review" ? "active" : ""} onClick={() => setActiveTab("review")}>
+            待审核
+          </button>
+          <button type="button" className={activeTab === "structure" ? "active" : ""} onClick={() => setActiveTab("structure")}>
+            结构配置
+          </button>
+          <button type="button" className={activeTab === "trash" ? "active" : ""} onClick={() => setActiveTab("trash")}>
+            回收站
+          </button>
+        </div>
+      </section>
+
+      {activeTab === "resources" ? (
+        <section className="card">
+          <h2>资源管理</h2>
+          <div className="action-buttons">
+            <input
+              type="text"
+              placeholder="搜索标题/描述"
+              value={resourceFilters.q}
+              onChange={(event) => setResourceFilters((prev) => ({ ...prev, q: event.target.value }))}
+            />
+            <select
+              value={resourceFilters.status}
+              onChange={(event) => setResourceFilters((prev) => ({ ...prev, status: event.target.value }))}
+            >
+              <option value="all">全部状态</option>
+              <option value="pending">待审核</option>
+              <option value="approved">公开</option>
+              <option value="hidden">不公开</option>
+              <option value="rejected">驳回</option>
+            </select>
+            <select
+              value={resourceFilters.chapterId}
+              onChange={(event) => setResourceFilters((prev) => ({ ...prev, chapterId: event.target.value }))}
+            >
+              <option value="">全部章节</option>
+              {chapters.map((chapter) => (
+                <option key={chapter.id} value={chapter.id}>
+                  {chapter.chapter_code} {chapter.title}
+                </option>
+              ))}
+            </select>
+            <select
+              value={resourceFilters.sectionId}
+              onChange={(event) => setResourceFilters((prev) => ({ ...prev, sectionId: event.target.value }))}
+            >
+              <option value="">全部板块</option>
+              {sections.map((section) => (
+                <option key={section.id} value={section.id}>{section.name}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="上传者ID筛选"
+              value={resourceFilters.author}
+              onChange={(event) => setResourceFilters((prev) => ({ ...prev, author: event.target.value }))}
+            />
+          </div>
+
+          <div className="action-buttons">
+            <button type="button" className="ghost" onClick={toggleSelectAllManaged}>
+              {selectedResourceIds.length === managedOrdered.length && managedOrdered.length ? "取消全选" : "全选"}
+            </button>
+            <select value={bulkAction} onChange={(event) => setBulkAction(event.target.value)}>
+              <option value="hide">批量设为不公开</option>
+              <option value="publish">批量公开</option>
+              <option value="trash">批量删除到回收站</option>
+            </select>
+            <input
+              type="text"
+              placeholder="批量备注（可选）"
+              value={bulkNote}
+              onChange={(event) => setBulkNote(event.target.value)}
+            />
+            <button type="button" onClick={handleBulkManage}>执行批量操作</button>
+            <span className="hint">已选 {selectedResourceIds.length} 条</span>
+          </div>
+
+          {!managedOrdered.length ? (
+            <p className="hint">当前筛选无资源</p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={selectedResourceIds.length > 0 && selectedResourceIds.length === managedOrdered.length}
+                      onChange={toggleSelectAllManaged}
+                    />
+                  </th>
+                  <th>ID</th>
+                  <th>标题</th>
+                  <th>状态</th>
+                  <th>章节/板块</th>
+                  <th>上传者</th>
+                  <th>标签</th>
+                  <th>更新时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {managedOrdered.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedResourceIds.includes(item.id)}
+                        onChange={() => toggleResourceSelection(item.id)}
+                      />
+                    </td>
+                    <td>{item.id}</td>
+                    <td>{item.title}</td>
+                    <td>{statusLabel[item.status] || item.status}</td>
+                    <td>
+                      <div>{chapterMap[item.chapter_id] || "-"}</div>
+                      <div className="hint">{sectionMap[item.section_id] || "-"}</div>
+                    </td>
+                    <td>{item.author_id}</td>
+                    <td>
+                      <div className="hint">人工：{item.tags?.length ? item.tags.join("、") : "-"}</div>
+                      <div className="hint">AI：{item.ai_tags?.length ? item.ai_tags.join("、") : "-"}</div>
+                    </td>
+                    <td>{formatTime(item.updated_at)}</td>
+                    <td className="action-buttons">
+                      {item.status !== "approved" ? (
+                        <button type="button" onClick={() => handleSetVisibility(item.id, "public")}>公开</button>
+                      ) : (
+                        <button type="button" className="ghost" disabled>已公开</button>
+                      )}
+                      {item.status !== "hidden" ? (
+                        <button type="button" className="ghost" onClick={() => handleSetVisibility(item.id, "hidden")}>不公开</button>
+                      ) : (
+                        <button type="button" className="ghost" disabled>已不公开</button>
+                      )}
+                      <button type="button" className="ghost" onClick={() => openResourceTagModal(item)}>
+                        编辑标签
+                      </button>
+                      <button type="button" className="ghost" onClick={() => handleAdoptAiTags(item.id, "merge")}>
+                        采纳AI标签
+                      </button>
+                      <button type="button" className="danger" onClick={() => handleDeleteResource(item.id)}>
+                        删除到回收站
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      ) : null}
+
+      {activeTab === "review" ? (
+        <section className="card">
+          <h2>待审核资源</h2>
+          {pendingItems.length === 0 ? (
+            <p>当前没有待审核资源</p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>标题</th>
+                  <th>上传者</th>
+                  <th>创建时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.id}</td>
+                    <td>{item.title}</td>
+                    <td>{item.author_id}</td>
+                    <td>{formatTime(item.created_at)}</td>
+                    <td className="action-buttons">
+                      <button type="button" onClick={() => openReviewModal(item.id, "approved")}>通过</button>
+                      <button type="button" className="danger" onClick={() => openReviewModal(item.id, "rejected")}>
+                        驳回
+                      </button>
+                      <button type="button" className="danger" onClick={() => handleDeleteResource(item.id)}>
+                        删除到回收站
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      ) : null}
+
+      {activeTab === "structure" ? (
+        <>
+          <section className="card">
+            <h2>章节管理</h2>
+            <div className="action-buttons">
+              <button type="button" onClick={() => openChapterModal("create")} disabled={strictCatalog}>
+                新增章节
+              </button>
+              <button type="button" className="ghost" onClick={handleSyncStrictCatalog}>
+                同步严格目录
+              </button>
+            </div>
+            <p className="hint">当前范围：高中 / 物理（固定）</p>
+            {catalogAudit ? (
+              <p className="hint">
+                目录版本 {catalogAudit.catalog_version} · 期望 {catalogAudit.expected_count} 章 ·
+                缺失 {catalogAudit.missing_count} · 非目录启用 {catalogAudit.unexpected_enabled_count}
+                {strictCatalog ? " · 严格模式已开启" : ""}
+              </p>
+            ) : null}
+            {strictCatalog ? (
+              <p className="hint">严格目录模式：章节名/章节号/册别不可手工修改。</p>
+            ) : null}
+            {!chapters.length ? (
+              <p className="hint">暂无章节</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>章节</th>
+                    <th>教材</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chapters.map((chapter) => (
+                    <tr key={chapter.id}>
+                      <td>{chapter.id}</td>
+                      <td>
+                        <div>{chapter.volume_name} · {chapter.grade} · {chapter.chapter_code} {chapter.title}</div>
+                        <div className="hint">册码 {chapter.volume_code}（册序 {chapter.volume_order} / 章序 {chapter.chapter_order}）</div>
+                      </td>
+                      <td>{chapter.textbook || "-"}</td>
+                      <td>{chapter.is_enabled ? "启用" : "停用"}</td>
+                      <td className="action-buttons">
+                        <button type="button" className="ghost" onClick={() => openChapterModal("edit", chapter)}>编辑</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          <section className="card">
+            <h2>板块管理</h2>
+            <div className="action-buttons">
+              <button type="button" onClick={() => openSectionModal("create")}>新增板块</button>
+              <input
+                type="text"
+                placeholder="筛选板块"
+                value={sectionFilter}
+                onChange={(event) => setSectionFilter(event.target.value)}
+              />
+              <select value={sectionStatus} onChange={(event) => setSectionStatus(event.target.value)}>
+                <option value="all">全部状态</option>
+                <option value="enabled">仅启用</option>
+                <option value="disabled">仅停用</option>
+              </select>
+            </div>
+            {!filteredSections.length ? (
+              <p className="hint">暂无板块</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>板块</th>
+                    <th>排序</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSections.map((section) => (
+                    <tr key={section.id}>
+                      <td>{section.id}</td>
+                      <td>
+                        <div>{section.name} ({section.code})</div>
+                        {section.description ? <div className="hint">{section.description}</div> : null}
+                      </td>
+                      <td>{section.sort_order}</td>
+                      <td>{section.is_enabled ? "启用" : "停用"}</td>
+                      <td className="action-buttons">
+                        <button type="button" className="ghost" onClick={() => openSectionModal("edit", section)}>编辑</button>
+                        <button type="button" className="ghost" onClick={() => moveSection(section.id, "up")}>上移</button>
+                        <button type="button" className="ghost" onClick={() => moveSection(section.id, "down")}>下移</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          <section className="card">
+            <h2>标签库管理</h2>
+            <div className="action-buttons">
+              <button type="button" onClick={() => openTagModal("create")}>新增标签</button>
+              <input
+                type="text"
+                placeholder="筛选标签"
+                value={tagFilter}
+                onChange={(event) => setTagFilter(event.target.value)}
+              />
+              <select value={tagStatus} onChange={(event) => setTagStatus(event.target.value)}>
+                <option value="all">全部状态</option>
+                <option value="enabled">仅启用</option>
+                <option value="disabled">仅停用</option>
+              </select>
+            </div>
+            {!filteredTags.length ? (
+              <p className="hint">暂无标签</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>标签</th>
+                    <th>分类</th>
+                    <th>排序</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTags.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.id}</td>
+                      <td>{item.tag}</td>
+                      <td>{item.category}</td>
+                      <td>{item.sort_order}</td>
+                      <td>{item.is_enabled ? "启用" : "停用"}</td>
+                      <td className="action-buttons">
+                        <button type="button" className="ghost" onClick={() => openTagModal("edit", item)}>编辑</button>
+                        <button type="button" className="ghost" onClick={() => moveTag(item.id, "up")}>上移</button>
+                        <button type="button" className="ghost" onClick={() => moveTag(item.id, "down")}>下移</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        </>
+      ) : null}
+
+      {activeTab === "trash" ? (
+        <section className="card">
+          <h2>回收站管理</h2>
+          <div className="action-buttons">
+            <select
+              value={trashScope}
+              onChange={(event) => {
+                setTrashScope(event.target.value);
+                setTrashPage(1);
+              }}
+            >
+              <option value="all">全部类型</option>
+              <option value="resource">资源回收</option>
+              <option value="storage">存储回收</option>
+            </select>
+            <input
+              type="text"
+              placeholder="搜索路径或来源"
+              value={trashQuery}
+              onChange={(event) => {
+                setTrashQuery(event.target.value);
+                setTrashPage(1);
+              }}
+            />
+            <button type="button" className="ghost" onClick={handleReconcile}>立即对账</button>
+            <button type="button" className="ghost" onClick={handlePurgeExpired}>清理过期</button>
+          </div>
+          {trashLoading ? <p className="hint">回收站加载中...</p> : null}
+          {!trashLoading && trashItems.length === 0 ? (
+            <p className="hint">回收站为空</p>
+          ) : null}
+          {!trashLoading && trashItems.length ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>类型</th>
+                  <th>资源</th>
+                  <th>原路径</th>
+                  <th>来源</th>
+                  <th>删除时间</th>
+                  <th>到期时间</th>
+                  <th>二进制</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trashItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.id}</td>
+                    <td>{item.scope}</td>
+                    <td>{item.resource_title || item.resource_id || "-"}</td>
+                    <td>{item.original_key}</td>
+                    <td>{item.source}</td>
+                    <td>{formatTime(item.deleted_at)}</td>
+                    <td>{formatTime(item.expires_at)}</td>
+                    <td>{item.has_binary ? "可恢复" : "仅记录"}</td>
+                    <td className="action-buttons">
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => handleRestoreTrash(item.id)}
+                        disabled={!item.has_binary}
+                      >
+                        恢复
+                      </button>
+                      <button type="button" className="danger" onClick={() => handlePurgeTrash(item.id)}>
+                        彻底删除
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
+          <div className="action-buttons">
+            <button
+              type="button"
+              className="ghost"
+              disabled={trashPage <= 1}
+              onClick={() => setTrashPage((page) => Math.max(1, page - 1))}
+            >
+              上一页
+            </button>
+            <span className="hint">第 {trashPage} / {totalTrashPages} 页（共 {trashTotal} 条）</span>
+            <button
+              type="button"
+              className="ghost"
+              disabled={trashPage >= totalTrashPages}
+              onClick={() => setTrashPage((page) => Math.min(totalTrashPages, page + 1))}
+            >
+              下一页
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      <EditModal
+        open={reviewModal.open}
+        title={reviewModal.status === "approved" ? "通过审核" : "驳回审核"}
+        onClose={() => setReviewModal({ open: false, resourceId: null, status: "approved", template: "", extra: "" })}
+        onSubmit={submitReview}
+        submitText="确认提交"
+      >
+        <label>
+          审核模板
+          <select
+            value={reviewModal.template}
+            onChange={(event) => setReviewModal({ ...reviewModal, template: event.target.value })}
+          >
+            {reviewTemplates.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          补充说明（可选）
+          <textarea
+            value={reviewModal.extra}
+            onChange={(event) => setReviewModal({ ...reviewModal, extra: event.target.value })}
+          />
+        </label>
+      </EditModal>
+
+      <EditModal
+        open={chapterModal.open}
+        title={chapterModal.mode === "create" ? "新增章节" : "编辑章节"}
+        onClose={() => setChapterModal({ open: false, mode: "create", chapterId: null, form: defaultChapterForm(volumeOptions[0] || null) })}
+        onSubmit={submitChapter}
+      >
+        <div className="hint">学段：高中（固定） / 学科：物理（固定）</div>
+        <label>
+          年级
+          <select
+            value={chapterModal.form.grade}
+            onChange={(event) => setChapterModal({
+              ...chapterModal,
+              form: { ...chapterModal.form, grade: event.target.value }
+            })}
+          >
+            {GRADE_OPTIONS.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          册别
+          <select
+            value={chapterModal.form.volume_code}
+            disabled={strictCatalog}
+            onChange={(event) => {
+              const selected = volumeOptions.find((item) => item.code === event.target.value);
+              setChapterModal({
+                ...chapterModal,
+                form: {
+                  ...chapterModal.form,
+                  volume_code: event.target.value,
+                  volume_name: selected?.name || chapterModal.form.volume_name,
+                  volume_order: selected?.order || chapterModal.form.volume_order
+                }
+              });
+            }}
+          >
+            {volumeOptions.map((item) => (
+              <option key={item.code} value={item.code}>{item.name}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          册显示名
+          <input
+            type="text"
+            value={chapterModal.form.volume_name}
+            disabled={strictCatalog}
+            onChange={(event) => setChapterModal({
+              ...chapterModal,
+              form: { ...chapterModal.form, volume_name: event.target.value }
+            })}
+            required
+          />
+        </label>
+        <label>
+          册排序
+          <input
+            type="number"
+            min={1}
+            value={chapterModal.form.volume_order}
+            disabled={strictCatalog}
+            onChange={(event) => setChapterModal({
+              ...chapterModal,
+              form: { ...chapterModal.form, volume_order: Number(event.target.value || 10) }
+            })}
+          />
+        </label>
+        <label>
+          章排序
+          <input
+            type="number"
+            min={1}
+            value={chapterModal.form.chapter_order}
+            onChange={(event) => setChapterModal({
+              ...chapterModal,
+              form: { ...chapterModal.form, chapter_order: Number(event.target.value || 10) }
+            })}
+          />
+        </label>
+        <label>
+          教材
+          <select
+            value={chapterModal.form.textbook_mode}
+            onChange={(event) => setChapterModal({
+              ...chapterModal,
+              form: { ...chapterModal.form, textbook_mode: event.target.value }
+            })}
+          >
+            {TEXTBOOK_PRESETS.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          章节关键词（逗号分隔）
+          <input
+            type="text"
+            value={chapterModal.form.chapter_keywords}
+            onChange={(event) => setChapterModal({
+              ...chapterModal,
+              form: { ...chapterModal.form, chapter_keywords: event.target.value }
+            })}
+            placeholder="例如：牛顿定律,受力分析,加速度"
+          />
+        </label>
+        {chapterModal.form.textbook_mode === "其他" ? (
+          <label>
+            自定义教材
+            <input
+              type="text"
+              value={chapterModal.form.textbook_custom}
+              onChange={(event) => setChapterModal({
+                ...chapterModal,
+                form: { ...chapterModal.form, textbook_custom: event.target.value }
+              })}
+            />
+          </label>
+        ) : null}
+        <label>
+          章节编号
+          <input
+            type="text"
+            value={chapterModal.form.chapter_code}
+            disabled={strictCatalog}
+            onChange={(event) => setChapterModal({
+              ...chapterModal,
+              form: { ...chapterModal.form, chapter_code: event.target.value }
+            })}
+            required
+          />
+        </label>
+        <label>
+          章节标题
+          <input
+            type="text"
+            value={chapterModal.form.title}
+            disabled={strictCatalog}
+            onChange={(event) => setChapterModal({
+              ...chapterModal,
+              form: { ...chapterModal.form, title: event.target.value }
+            })}
+            required
+          />
+        </label>
+        {chapterModal.mode === "edit" ? (
+          <label className="inline-check">
+            <input
+              type="checkbox"
+              checked={chapterModal.form.is_enabled}
+              onChange={(event) => setChapterModal({
+                ...chapterModal,
+                form: { ...chapterModal.form, is_enabled: event.target.checked }
+              })}
+            />
+            启用章节
+          </label>
+        ) : null}
+      </EditModal>
+
+      <EditModal
+        open={sectionModal.open}
+        title={sectionModal.mode === "create" ? "新增板块" : "编辑板块"}
+        onClose={() => setSectionModal({ open: false, mode: "create", sectionId: null, form: defaultSectionForm() })}
+        onSubmit={submitSection}
+      >
+        <div className="hint">学段：高中（固定） / 学科：物理（固定）</div>
+        <label>
+          板块代码
+          <input
+            type="text"
+            value={sectionModal.form.code}
+            onChange={(event) => setSectionModal({
+              ...sectionModal,
+              form: { ...sectionModal.form, code: normalizeSectionCode(event.target.value) }
+            })}
+            placeholder="例如：experiment-design"
+            required
+          />
+        </label>
+        <div className="hint">规则：仅小写字母/数字/连字符，建议英文语义码（示例：`simulation-3d`）。</div>
+        <label>
+          板块名称
+          <input
+            type="text"
+            value={sectionModal.form.name}
+            onChange={(event) => setSectionModal({
+              ...sectionModal,
+              form: { ...sectionModal.form, name: event.target.value }
+            })}
+            required
+          />
+        </label>
+        <label>
+          描述
+          <textarea
+            value={sectionModal.form.description}
+            onChange={(event) => setSectionModal({
+              ...sectionModal,
+              form: { ...sectionModal.form, description: event.target.value }
+            })}
+          />
+        </label>
+        <label>
+          排序值
+          <input
+            type="number"
+            value={sectionModal.form.sort_order}
+            onChange={(event) => setSectionModal({
+              ...sectionModal,
+              form: { ...sectionModal.form, sort_order: Number(event.target.value || 100) }
+            })}
+          />
+        </label>
+        <label className="inline-check">
+          <input
+            type="checkbox"
+            checked={sectionModal.form.is_enabled}
+            onChange={(event) => setSectionModal({
+              ...sectionModal,
+              form: { ...sectionModal.form, is_enabled: event.target.checked }
+            })}
+          />
+          启用板块
+        </label>
+      </EditModal>
+
+      <EditModal
+        open={tagModal.open}
+        title={tagModal.mode === "create" ? "新增标签" : "编辑标签"}
+        onClose={() => setTagModal({ open: false, mode: "create", tagId: null, form: defaultTagForm() })}
+        onSubmit={submitTag}
+      >
+        <div className="hint">学段：高中（固定） / 学科：物理（固定）</div>
+        <label>
+          标签名称
+          <input
+            type="text"
+            value={tagModal.form.tag}
+            onChange={(event) => setTagModal({
+              ...tagModal,
+              form: { ...tagModal.form, tag: event.target.value }
+            })}
+            required
+          />
+        </label>
+        <label>
+          标签分类
+          <select
+            value={tagModal.form.category}
+            onChange={(event) => setTagModal({
+              ...tagModal,
+              form: { ...tagModal.form, category: event.target.value }
+            })}
+          >
+            {TAG_CATEGORY_OPTIONS.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          排序值
+          <input
+            type="number"
+            value={tagModal.form.sort_order}
+            onChange={(event) => setTagModal({
+              ...tagModal,
+              form: { ...tagModal.form, sort_order: Number(event.target.value || 100) }
+            })}
+          />
+        </label>
+        <label className="inline-check">
+          <input
+            type="checkbox"
+            checked={tagModal.form.is_enabled}
+            onChange={(event) => setTagModal({
+              ...tagModal,
+              form: { ...tagModal.form, is_enabled: event.target.checked }
+            })}
+          />
+          启用标签
+        </label>
+      </EditModal>
+
+      <EditModal
+        open={resourceTagModal.open}
+        title={`资源标签管理 #${resourceTagModal.resourceId || ""}`}
+        onClose={() => setResourceTagModal({ open: false, resourceId: null, title: "", tagsText: "", mode: "replace" })}
+        onSubmit={submitResourceTags}
+      >
+        <div className="hint">{resourceTagModal.title || "-"}</div>
+        <label>
+          更新模式
+          <select
+            value={resourceTagModal.mode}
+            onChange={(event) => setResourceTagModal((prev) => ({ ...prev, mode: event.target.value }))}
+          >
+            <option value="replace">覆盖人工标签</option>
+            <option value="append">追加人工标签</option>
+          </select>
+        </label>
+        <label>
+          标签（逗号分隔）
+          <textarea
+            value={resourceTagModal.tagsText}
+            onChange={(event) => setResourceTagModal((prev) => ({ ...prev, tagsText: event.target.value }))}
+            placeholder="例如：牛顿第二定律,受力分析,典型例题"
+          />
+        </label>
+        <div className="hint">AI标签不会被覆盖，可用“采纳AI标签”一键合并。</div>
+      </EditModal>
+    </>
+  );
+}

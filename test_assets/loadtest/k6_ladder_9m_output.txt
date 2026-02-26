@@ -1,0 +1,2009 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /scripts/k6_ladder_9m.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 150 max VUs, 9m30s max duration (incl. graceful stop):
+              * default: Up to 150 looping VUs for 9m0s over 9 stages (gracefulRampDown: 30s, gracefulStop: 30s)
+
+
+running (0m01.0s), 001/150 VUs, 5 complete and 0 interrupted iterations
+default   [   0% ] 001/150 VUs  0m01.0s/9m00.0s
+
+running (0m02.0s), 001/150 VUs, 13 complete and 0 interrupted iterations
+default   [   0% ] 001/150 VUs  0m02.0s/9m00.0s
+
+running (0m03.0s), 001/150 VUs, 19 complete and 0 interrupted iterations
+default   [   1% ] 001/150 VUs  0m03.0s/9m00.0s
+
+running (0m04.0s), 002/150 VUs, 30 complete and 0 interrupted iterations
+default   [   1% ] 002/150 VUs  0m04.0s/9m00.0s
+
+running (0m05.0s), 002/150 VUs, 41 complete and 0 interrupted iterations
+default   [   1% ] 002/150 VUs  0m05.0s/9m00.0s
+
+running (0m06.0s), 002/150 VUs, 54 complete and 0 interrupted iterations
+default   [   1% ] 002/150 VUs  0m06.0s/9m00.0s
+
+running (0m07.0s), 003/150 VUs, 71 complete and 0 interrupted iterations
+default   [   1% ] 003/150 VUs  0m07.0s/9m00.0s
+
+running (0m08.0s), 003/150 VUs, 89 complete and 0 interrupted iterations
+default   [   1% ] 003/150 VUs  0m08.0s/9m00.0s
+
+running (0m09.0s), 003/150 VUs, 111 complete and 0 interrupted iterations
+default   [   2% ] 003/150 VUs  0m09.0s/9m00.0s
+
+running (0m10.0s), 004/150 VUs, 131 complete and 0 interrupted iterations
+default   [   2% ] 004/150 VUs  0m10.0s/9m00.0s
+
+running (0m11.0s), 004/150 VUs, 157 complete and 0 interrupted iterations
+default   [   2% ] 004/150 VUs  0m11.0s/9m00.0s
+
+running (0m12.0s), 004/150 VUs, 184 complete and 0 interrupted iterations
+default   [   2% ] 004/150 VUs  0m12.0s/9m00.0s
+
+running (0m13.0s), 005/150 VUs, 207 complete and 0 interrupted iterations
+default   [   2% ] 005/150 VUs  0m13.0s/9m00.0s
+
+running (0m14.0s), 005/150 VUs, 229 complete and 0 interrupted iterations
+default   [   3% ] 005/150 VUs  0m14.0s/9m00.0s
+
+running (0m15.0s), 005/150 VUs, 253 complete and 0 interrupted iterations
+default   [   3% ] 005/150 VUs  0m15.0s/9m00.0s
+
+running (0m16.0s), 006/150 VUs, 279 complete and 0 interrupted iterations
+default   [   3% ] 006/150 VUs  0m16.0s/9m00.0s
+
+running (0m17.0s), 006/150 VUs, 311 complete and 0 interrupted iterations
+default   [   3% ] 006/150 VUs  0m17.0s/9m00.0s
+
+running (0m18.0s), 006/150 VUs, 344 complete and 0 interrupted iterations
+default   [   3% ] 006/150 VUs  0m18.0s/9m00.0s
+
+running (0m19.0s), 007/150 VUs, 383 complete and 0 interrupted iterations
+default   [   4% ] 007/150 VUs  0m19.0s/9m00.0s
+
+running (0m20.0s), 007/150 VUs, 428 complete and 0 interrupted iterations
+default   [   4% ] 007/150 VUs  0m20.0s/9m00.0s
+
+running (0m21.0s), 007/150 VUs, 472 complete and 0 interrupted iterations
+default   [   4% ] 007/150 VUs  0m21.0s/9m00.0s
+
+running (0m22.0s), 007/150 VUs, 519 complete and 0 interrupted iterations
+default   [   4% ] 007/150 VUs  0m22.0s/9m00.0s
+
+running (0m23.0s), 008/150 VUs, 571 complete and 0 interrupted iterations
+default   [   4% ] 008/150 VUs  0m23.0s/9m00.0s
+
+running (0m24.0s), 008/150 VUs, 621 complete and 0 interrupted iterations
+default   [   4% ] 008/150 VUs  0m24.0s/9m00.0s
+
+running (0m25.0s), 008/150 VUs, 674 complete and 0 interrupted iterations
+default   [   5% ] 008/150 VUs  0m25.0s/9m00.0s
+
+running (0m26.0s), 009/150 VUs, 728 complete and 0 interrupted iterations
+default   [   5% ] 009/150 VUs  0m26.0s/9m00.0s
+
+running (0m27.0s), 009/150 VUs, 787 complete and 0 interrupted iterations
+default   [   5% ] 009/150 VUs  0m27.0s/9m00.0s
+
+running (0m28.0s), 009/150 VUs, 844 complete and 0 interrupted iterations
+default   [   5% ] 009/150 VUs  0m28.0s/9m00.0s
+
+running (0m29.0s), 010/150 VUs, 900 complete and 0 interrupted iterations
+default   [   5% ] 010/150 VUs  0m29.0s/9m00.0s
+
+running (0m30.0s), 010/150 VUs, 957 complete and 0 interrupted iterations
+default   [   6% ] 010/150 VUs  0m30.0s/9m00.0s
+
+running (0m31.0s), 010/150 VUs, 1012 complete and 0 interrupted iterations
+default   [   6% ] 010/150 VUs  0m31.0s/9m00.0s
+
+running (0m32.0s), 011/150 VUs, 1081 complete and 0 interrupted iterations
+default   [   6% ] 011/150 VUs  0m32.0s/9m00.0s
+
+running (0m33.0s), 011/150 VUs, 1157 complete and 0 interrupted iterations
+default   [   6% ] 011/150 VUs  0m33.0s/9m00.0s
+
+running (0m34.0s), 011/150 VUs, 1221 complete and 0 interrupted iterations
+default   [   6% ] 011/150 VUs  0m34.0s/9m00.0s
+
+running (0m35.0s), 012/150 VUs, 1288 complete and 0 interrupted iterations
+default   [   6% ] 012/150 VUs  0m35.0s/9m00.0s
+
+running (0m36.0s), 012/150 VUs, 1357 complete and 0 interrupted iterations
+default   [   7% ] 012/150 VUs  0m36.0s/9m00.0s
+
+running (0m37.0s), 012/150 VUs, 1434 complete and 0 interrupted iterations
+default   [   7% ] 012/150 VUs  0m37.0s/9m00.0s
+
+running (0m38.0s), 013/150 VUs, 1507 complete and 0 interrupted iterations
+default   [   7% ] 013/150 VUs  0m38.0s/9m00.0s
+
+running (0m39.0s), 013/150 VUs, 1582 complete and 0 interrupted iterations
+default   [   7% ] 013/150 VUs  0m39.0s/9m00.0s
+
+running (0m40.0s), 013/150 VUs, 1666 complete and 0 interrupted iterations
+default   [   7% ] 013/150 VUs  0m40.0s/9m00.0s
+
+running (0m41.0s), 013/150 VUs, 1743 complete and 0 interrupted iterations
+default   [   8% ] 013/150 VUs  0m41.0s/9m00.0s
+
+running (0m42.0s), 014/150 VUs, 1827 complete and 0 interrupted iterations
+default   [   8% ] 014/150 VUs  0m42.0s/9m00.0s
+
+running (0m43.0s), 014/150 VUs, 1915 complete and 0 interrupted iterations
+default   [   8% ] 014/150 VUs  0m43.0s/9m00.0s
+
+running (0m44.0s), 014/150 VUs, 2002 complete and 0 interrupted iterations
+default   [   8% ] 014/150 VUs  0m44.0s/9m00.0s
+
+running (0m45.0s), 015/150 VUs, 2091 complete and 0 interrupted iterations
+default   [   8% ] 015/150 VUs  0m45.0s/9m00.0s
+
+running (0m46.0s), 015/150 VUs, 2184 complete and 0 interrupted iterations
+default   [   9% ] 015/150 VUs  0m46.0s/9m00.0s
+
+running (0m47.0s), 015/150 VUs, 2272 complete and 0 interrupted iterations
+default   [   9% ] 015/150 VUs  0m47.0s/9m00.0s
+
+running (0m48.0s), 016/150 VUs, 2363 complete and 0 interrupted iterations
+default   [   9% ] 016/150 VUs  0m48.0s/9m00.0s
+
+running (0m49.0s), 016/150 VUs, 2466 complete and 0 interrupted iterations
+default   [   9% ] 016/150 VUs  0m49.0s/9m00.0s
+
+running (0m50.0s), 016/150 VUs, 2562 complete and 0 interrupted iterations
+default   [   9% ] 016/150 VUs  0m50.0s/9m00.0s
+
+running (0m51.0s), 017/150 VUs, 2660 complete and 0 interrupted iterations
+default   [   9% ] 017/150 VUs  0m51.0s/9m00.0s
+
+running (0m52.0s), 017/150 VUs, 2765 complete and 0 interrupted iterations
+default   [  10% ] 017/150 VUs  0m52.0s/9m00.0s
+
+running (0m53.0s), 017/150 VUs, 2869 complete and 0 interrupted iterations
+default   [  10% ] 017/150 VUs  0m53.0s/9m00.0s
+
+running (0m54.0s), 018/150 VUs, 2975 complete and 0 interrupted iterations
+default   [  10% ] 018/150 VUs  0m54.0s/9m00.0s
+
+running (0m55.0s), 018/150 VUs, 3090 complete and 0 interrupted iterations
+default   [  10% ] 018/150 VUs  0m55.0s/9m00.0s
+
+running (0m56.0s), 018/150 VUs, 3202 complete and 0 interrupted iterations
+default   [  10% ] 018/150 VUs  0m56.0s/9m00.0s
+
+running (0m57.0s), 019/150 VUs, 3315 complete and 0 interrupted iterations
+default   [  11% ] 019/150 VUs  0m57.0s/9m00.0s
+
+running (0m58.0s), 019/150 VUs, 3435 complete and 0 interrupted iterations
+default   [  11% ] 019/150 VUs  0m58.0s/9m00.0s
+
+running (0m59.0s), 019/150 VUs, 3553 complete and 0 interrupted iterations
+default   [  11% ] 019/150 VUs  0m59.0s/9m00.0s
+
+running (1m00.0s), 019/150 VUs, 3681 complete and 0 interrupted iterations
+default   [  11% ] 019/150 VUs  1m00.0s/9m00.0s
+
+running (1m01.0s), 020/150 VUs, 3800 complete and 0 interrupted iterations
+default   [  11% ] 020/150 VUs  1m01.0s/9m00.0s
+
+running (1m02.0s), 020/150 VUs, 3925 complete and 0 interrupted iterations
+default   [  11% ] 020/150 VUs  1m02.0s/9m00.0s
+
+running (1m03.0s), 020/150 VUs, 4039 complete and 0 interrupted iterations
+default   [  12% ] 020/150 VUs  1m03.0s/9m00.0s
+
+running (1m04.0s), 020/150 VUs, 4163 complete and 0 interrupted iterations
+default   [  12% ] 020/150 VUs  1m04.0s/9m00.0s
+
+running (1m05.0s), 020/150 VUs, 4296 complete and 0 interrupted iterations
+default   [  12% ] 020/150 VUs  1m05.0s/9m00.0s
+
+running (1m06.0s), 020/150 VUs, 4418 complete and 0 interrupted iterations
+default   [  12% ] 020/150 VUs  1m06.0s/9m00.0s
+
+running (1m07.0s), 020/150 VUs, 4551 complete and 0 interrupted iterations
+default   [  12% ] 020/150 VUs  1m07.0s/9m00.0s
+
+running (1m08.0s), 020/150 VUs, 4681 complete and 0 interrupted iterations
+default   [  13% ] 020/150 VUs  1m08.0s/9m00.0s
+
+running (1m09.0s), 020/150 VUs, 4805 complete and 0 interrupted iterations
+default   [  13% ] 020/150 VUs  1m09.0s/9m00.0s
+
+running (1m10.0s), 020/150 VUs, 4925 complete and 0 interrupted iterations
+default   [  13% ] 020/150 VUs  1m10.0s/9m00.0s
+
+running (1m11.0s), 020/150 VUs, 5050 complete and 0 interrupted iterations
+default   [  13% ] 020/150 VUs  1m11.0s/9m00.0s
+
+running (1m12.0s), 020/150 VUs, 5170 complete and 0 interrupted iterations
+default   [  13% ] 020/150 VUs  1m12.0s/9m00.0s
+
+running (1m13.0s), 020/150 VUs, 5285 complete and 0 interrupted iterations
+default   [  14% ] 020/150 VUs  1m13.0s/9m00.0s
+
+running (1m14.0s), 020/150 VUs, 5416 complete and 0 interrupted iterations
+default   [  14% ] 020/150 VUs  1m14.0s/9m00.0s
+
+running (1m15.0s), 020/150 VUs, 5541 complete and 0 interrupted iterations
+default   [  14% ] 020/150 VUs  1m15.0s/9m00.0s
+
+running (1m16.0s), 020/150 VUs, 5661 complete and 0 interrupted iterations
+default   [  14% ] 020/150 VUs  1m16.0s/9m00.0s
+
+running (1m17.0s), 020/150 VUs, 5785 complete and 0 interrupted iterations
+default   [  14% ] 020/150 VUs  1m17.0s/9m00.0s
+
+running (1m18.0s), 020/150 VUs, 5915 complete and 0 interrupted iterations
+default   [  14% ] 020/150 VUs  1m18.0s/9m00.0s
+
+running (1m19.0s), 020/150 VUs, 6048 complete and 0 interrupted iterations
+default   [  15% ] 020/150 VUs  1m19.0s/9m00.0s
+
+running (1m20.0s), 020/150 VUs, 6176 complete and 0 interrupted iterations
+default   [  15% ] 020/150 VUs  1m20.0s/9m00.0s
+
+running (1m21.0s), 020/150 VUs, 6297 complete and 0 interrupted iterations
+default   [  15% ] 020/150 VUs  1m21.0s/9m00.0s
+
+running (1m22.0s), 020/150 VUs, 6422 complete and 0 interrupted iterations
+default   [  15% ] 020/150 VUs  1m22.0s/9m00.0s
+
+running (1m23.0s), 020/150 VUs, 6551 complete and 0 interrupted iterations
+default   [  15% ] 020/150 VUs  1m23.0s/9m00.0s
+
+running (1m24.0s), 020/150 VUs, 6671 complete and 0 interrupted iterations
+default   [  16% ] 020/150 VUs  1m24.0s/9m00.0s
+
+running (1m25.0s), 020/150 VUs, 6794 complete and 0 interrupted iterations
+default   [  16% ] 020/150 VUs  1m25.0s/9m00.0s
+
+running (1m26.0s), 020/150 VUs, 6912 complete and 0 interrupted iterations
+default   [  16% ] 020/150 VUs  1m26.0s/9m00.0s
+
+running (1m27.0s), 020/150 VUs, 7037 complete and 0 interrupted iterations
+default   [  16% ] 020/150 VUs  1m27.0s/9m00.0s
+
+running (1m28.0s), 020/150 VUs, 7164 complete and 0 interrupted iterations
+default   [  16% ] 020/150 VUs  1m28.0s/9m00.0s
+
+running (1m29.0s), 020/150 VUs, 7281 complete and 0 interrupted iterations
+default   [  16% ] 020/150 VUs  1m29.0s/9m00.0s
+
+running (1m30.0s), 020/150 VUs, 7402 complete and 0 interrupted iterations
+default   [  17% ] 020/150 VUs  1m30.0s/9m00.0s
+
+running (1m31.0s), 020/150 VUs, 7523 complete and 0 interrupted iterations
+default   [  17% ] 020/150 VUs  1m31.0s/9m00.0s
+
+running (1m32.0s), 020/150 VUs, 7655 complete and 0 interrupted iterations
+default   [  17% ] 020/150 VUs  1m32.0s/9m00.0s
+
+running (1m33.0s), 020/150 VUs, 7773 complete and 0 interrupted iterations
+default   [  17% ] 020/150 VUs  1m33.0s/9m00.0s
+
+running (1m34.0s), 020/150 VUs, 7895 complete and 0 interrupted iterations
+default   [  17% ] 020/150 VUs  1m34.0s/9m00.0s
+
+running (1m35.0s), 020/150 VUs, 8025 complete and 0 interrupted iterations
+default   [  18% ] 020/150 VUs  1m35.0s/9m00.0s
+
+running (1m36.0s), 020/150 VUs, 8148 complete and 0 interrupted iterations
+default   [  18% ] 020/150 VUs  1m36.0s/9m00.0s
+
+running (1m37.0s), 020/150 VUs, 8268 complete and 0 interrupted iterations
+default   [  18% ] 020/150 VUs  1m37.0s/9m00.0s
+
+running (1m38.0s), 020/150 VUs, 8393 complete and 0 interrupted iterations
+default   [  18% ] 020/150 VUs  1m38.0s/9m00.0s
+
+running (1m39.0s), 020/150 VUs, 8515 complete and 0 interrupted iterations
+default   [  18% ] 020/150 VUs  1m39.0s/9m00.0s
+
+running (1m40.0s), 020/150 VUs, 8634 complete and 0 interrupted iterations
+default   [  19% ] 020/150 VUs  1m40.0s/9m00.0s
+
+running (1m41.0s), 020/150 VUs, 8767 complete and 0 interrupted iterations
+default   [  19% ] 020/150 VUs  1m41.0s/9m00.0s
+
+running (1m42.0s), 020/150 VUs, 8893 complete and 0 interrupted iterations
+default   [  19% ] 020/150 VUs  1m42.0s/9m00.0s
+
+running (1m43.0s), 020/150 VUs, 9028 complete and 0 interrupted iterations
+default   [  19% ] 020/150 VUs  1m43.0s/9m00.0s
+
+running (1m44.0s), 020/150 VUs, 9149 complete and 0 interrupted iterations
+default   [  19% ] 020/150 VUs  1m44.0s/9m00.0s
+
+running (1m45.0s), 020/150 VUs, 9280 complete and 0 interrupted iterations
+default   [  19% ] 020/150 VUs  1m45.0s/9m00.0s
+
+running (1m46.0s), 020/150 VUs, 9405 complete and 0 interrupted iterations
+default   [  20% ] 020/150 VUs  1m46.0s/9m00.0s
+
+running (1m47.0s), 020/150 VUs, 9528 complete and 0 interrupted iterations
+default   [  20% ] 020/150 VUs  1m47.0s/9m00.0s
+
+running (1m48.0s), 020/150 VUs, 9657 complete and 0 interrupted iterations
+default   [  20% ] 020/150 VUs  1m48.0s/9m00.0s
+
+running (1m49.0s), 020/150 VUs, 9784 complete and 0 interrupted iterations
+default   [  20% ] 020/150 VUs  1m49.0s/9m00.0s
+
+running (1m50.0s), 020/150 VUs, 9903 complete and 0 interrupted iterations
+default   [  20% ] 020/150 VUs  1m50.0s/9m00.0s
+
+running (1m51.0s), 020/150 VUs, 10016 complete and 0 interrupted iterations
+default   [  21% ] 020/150 VUs  1m51.0s/9m00.0s
+
+running (1m52.0s), 020/150 VUs, 10143 complete and 0 interrupted iterations
+default   [  21% ] 020/150 VUs  1m52.0s/9m00.0s
+
+running (1m53.0s), 020/150 VUs, 10266 complete and 0 interrupted iterations
+default   [  21% ] 020/150 VUs  1m53.0s/9m00.0s
+
+running (1m54.0s), 020/150 VUs, 10388 complete and 0 interrupted iterations
+default   [  21% ] 020/150 VUs  1m54.0s/9m00.0s
+
+running (1m55.0s), 020/150 VUs, 10506 complete and 0 interrupted iterations
+default   [  21% ] 020/150 VUs  1m55.0s/9m00.0s
+
+running (1m56.0s), 020/150 VUs, 10637 complete and 0 interrupted iterations
+default   [  21% ] 020/150 VUs  1m56.0s/9m00.0s
+
+running (1m57.0s), 020/150 VUs, 10758 complete and 0 interrupted iterations
+default   [  22% ] 020/150 VUs  1m57.0s/9m00.0s
+
+running (1m58.0s), 020/150 VUs, 10878 complete and 0 interrupted iterations
+default   [  22% ] 020/150 VUs  1m58.0s/9m00.0s
+
+running (1m59.0s), 020/150 VUs, 11002 complete and 0 interrupted iterations
+default   [  22% ] 020/150 VUs  1m59.0s/9m00.0s
+
+running (2m00.0s), 020/150 VUs, 11125 complete and 0 interrupted iterations
+default   [  22% ] 020/150 VUs  2m00.0s/9m00.0s
+
+running (2m01.0s), 020/150 VUs, 11236 complete and 0 interrupted iterations
+default   [  22% ] 020/150 VUs  2m01.0s/9m00.0s
+
+running (2m02.0s), 020/150 VUs, 11364 complete and 0 interrupted iterations
+default   [  23% ] 020/150 VUs  2m02.0s/9m00.0s
+
+running (2m03.0s), 021/150 VUs, 11490 complete and 0 interrupted iterations
+default   [  23% ] 021/150 VUs  2m03.0s/9m00.0s
+
+running (2m04.0s), 021/150 VUs, 11619 complete and 0 interrupted iterations
+default   [  23% ] 021/150 VUs  2m04.0s/9m00.0s
+
+running (2m05.0s), 022/150 VUs, 11751 complete and 0 interrupted iterations
+default   [  23% ] 022/150 VUs  2m05.0s/9m00.0s
+
+running (2m06.0s), 022/150 VUs, 11883 complete and 0 interrupted iterations
+default   [  23% ] 022/150 VUs  2m06.0s/9m00.0s
+
+running (2m07.0s), 023/150 VUs, 12016 complete and 0 interrupted iterations
+default   [  24% ] 023/150 VUs  2m07.0s/9m00.0s
+
+running (2m08.0s), 023/150 VUs, 12158 complete and 0 interrupted iterations
+default   [  24% ] 023/150 VUs  2m08.0s/9m00.0s
+
+running (2m09.0s), 024/150 VUs, 12311 complete and 0 interrupted iterations
+default   [  24% ] 024/150 VUs  2m09.0s/9m00.0s
+
+running (2m10.0s), 024/150 VUs, 12452 complete and 0 interrupted iterations
+default   [  24% ] 024/150 VUs  2m10.0s/9m00.0s
+
+running (2m11.0s), 025/150 VUs, 12598 complete and 0 interrupted iterations
+default   [  24% ] 025/150 VUs  2m11.0s/9m00.0s
+
+running (2m12.0s), 025/150 VUs, 12741 complete and 0 interrupted iterations
+default   [  24% ] 025/150 VUs  2m12.0s/9m00.0s
+
+running (2m13.0s), 026/150 VUs, 12908 complete and 0 interrupted iterations
+default   [  25% ] 026/150 VUs  2m13.0s/9m00.0s
+
+running (2m14.0s), 026/150 VUs, 13067 complete and 0 interrupted iterations
+default   [  25% ] 026/150 VUs  2m14.0s/9m00.0s
+
+running (2m15.0s), 027/150 VUs, 13225 complete and 0 interrupted iterations
+default   [  25% ] 027/150 VUs  2m15.0s/9m00.0s
+
+running (2m16.0s), 027/150 VUs, 13391 complete and 0 interrupted iterations
+default   [  25% ] 027/150 VUs  2m16.0s/9m00.0s
+
+running (2m17.0s), 028/150 VUs, 13558 complete and 0 interrupted iterations
+default   [  25% ] 028/150 VUs  2m17.0s/9m00.0s
+
+running (2m18.0s), 028/150 VUs, 13726 complete and 0 interrupted iterations
+default   [  26% ] 028/150 VUs  2m18.0s/9m00.0s
+
+running (2m19.0s), 029/150 VUs, 13894 complete and 0 interrupted iterations
+default   [  26% ] 029/150 VUs  2m19.0s/9m00.0s
+
+running (2m20.0s), 029/150 VUs, 14059 complete and 0 interrupted iterations
+default   [  26% ] 029/150 VUs  2m20.0s/9m00.0s
+
+running (2m21.0s), 030/150 VUs, 14230 complete and 0 interrupted iterations
+default   [  26% ] 030/150 VUs  2m21.0s/9m00.0s
+
+running (2m22.0s), 030/150 VUs, 14412 complete and 0 interrupted iterations
+default   [  26% ] 030/150 VUs  2m22.0s/9m00.0s
+
+running (2m23.0s), 031/150 VUs, 14593 complete and 0 interrupted iterations
+default   [  26% ] 031/150 VUs  2m23.0s/9m00.0s
+
+running (2m24.0s), 031/150 VUs, 14773 complete and 0 interrupted iterations
+default   [  27% ] 031/150 VUs  2m24.0s/9m00.0s
+
+running (2m25.0s), 032/150 VUs, 14954 complete and 0 interrupted iterations
+default   [  27% ] 032/150 VUs  2m25.0s/9m00.0s
+
+running (2m26.0s), 032/150 VUs, 15125 complete and 0 interrupted iterations
+default   [  27% ] 032/150 VUs  2m26.0s/9m00.0s
+
+running (2m27.0s), 033/150 VUs, 15310 complete and 0 interrupted iterations
+default   [  27% ] 033/150 VUs  2m27.0s/9m00.0s
+
+running (2m28.0s), 033/150 VUs, 15435 complete and 0 interrupted iterations
+default   [  27% ] 033/150 VUs  2m28.0s/9m00.0s
+
+running (2m29.0s), 034/150 VUs, 15585 complete and 0 interrupted iterations
+default   [  28% ] 034/150 VUs  2m29.0s/9m00.0s
+
+running (2m30.0s), 034/150 VUs, 15765 complete and 0 interrupted iterations
+default   [  28% ] 034/150 VUs  2m30.0s/9m00.0s
+
+running (2m31.0s), 035/150 VUs, 15932 complete and 0 interrupted iterations
+default   [  28% ] 035/150 VUs  2m31.0s/9m00.0s
+
+running (2m32.0s), 035/150 VUs, 16123 complete and 0 interrupted iterations
+default   [  28% ] 035/150 VUs  2m32.0s/9m00.0s
+
+running (2m33.0s), 036/150 VUs, 16317 complete and 0 interrupted iterations
+default   [  28% ] 036/150 VUs  2m33.0s/9m00.0s
+
+running (2m34.0s), 036/150 VUs, 16465 complete and 0 interrupted iterations
+default   [  29% ] 036/150 VUs  2m34.0s/9m00.0s
+
+running (2m35.0s), 037/150 VUs, 16624 complete and 0 interrupted iterations
+default   [  29% ] 037/150 VUs  2m35.0s/9m00.0s
+
+running (2m36.0s), 037/150 VUs, 16815 complete and 0 interrupted iterations
+default   [  29% ] 037/150 VUs  2m36.0s/9m00.0s
+
+running (2m37.0s), 038/150 VUs, 16984 complete and 0 interrupted iterations
+default   [  29% ] 038/150 VUs  2m37.0s/9m00.0s
+
+running (2m38.0s), 038/150 VUs, 17156 complete and 0 interrupted iterations
+default   [  29% ] 038/150 VUs  2m38.0s/9m00.0s
+
+running (2m39.0s), 039/150 VUs, 17352 complete and 0 interrupted iterations
+default   [  29% ] 039/150 VUs  2m39.0s/9m00.0s
+
+running (2m40.0s), 039/150 VUs, 17528 complete and 0 interrupted iterations
+default   [  30% ] 039/150 VUs  2m40.0s/9m00.0s
+
+running (2m41.0s), 040/150 VUs, 17739 complete and 0 interrupted iterations
+default   [  30% ] 040/150 VUs  2m41.0s/9m00.0s
+
+running (2m42.0s), 040/150 VUs, 17923 complete and 0 interrupted iterations
+default   [  30% ] 040/150 VUs  2m42.0s/9m00.0s
+
+running (2m43.0s), 041/150 VUs, 18122 complete and 0 interrupted iterations
+default   [  30% ] 041/150 VUs  2m43.0s/9m00.0s
+
+running (2m44.0s), 042/150 VUs, 18258 complete and 0 interrupted iterations
+default   [  30% ] 042/150 VUs  2m44.0s/9m00.0s
+
+running (2m45.0s), 042/150 VUs, 18435 complete and 0 interrupted iterations
+default   [  31% ] 042/150 VUs  2m45.0s/9m00.0s
+
+running (2m46.0s), 042/150 VUs, 18589 complete and 0 interrupted iterations
+default   [  31% ] 042/150 VUs  2m46.0s/9m00.0s
+
+running (2m47.0s), 043/150 VUs, 18758 complete and 0 interrupted iterations
+default   [  31% ] 043/150 VUs  2m47.0s/9m00.0s
+
+running (2m48.0s), 043/150 VUs, 18955 complete and 0 interrupted iterations
+default   [  31% ] 043/150 VUs  2m48.0s/9m00.0s
+
+running (2m49.0s), 044/150 VUs, 19117 complete and 0 interrupted iterations
+default   [  31% ] 044/150 VUs  2m49.0s/9m00.0s
+
+running (2m50.0s), 044/150 VUs, 19297 complete and 0 interrupted iterations
+default   [  31% ] 044/150 VUs  2m50.0s/9m00.0s
+
+running (2m51.0s), 045/150 VUs, 19486 complete and 0 interrupted iterations
+default   [  32% ] 045/150 VUs  2m51.0s/9m00.0s
+
+running (2m52.0s), 045/150 VUs, 19668 complete and 0 interrupted iterations
+default   [  32% ] 045/150 VUs  2m52.0s/9m00.0s
+
+running (2m53.0s), 046/150 VUs, 19867 complete and 0 interrupted iterations
+default   [  32% ] 046/150 VUs  2m53.0s/9m00.0s
+
+running (2m54.0s), 046/150 VUs, 20071 complete and 0 interrupted iterations
+default   [  32% ] 046/150 VUs  2m54.0s/9m00.0s
+
+running (2m55.0s), 047/150 VUs, 20270 complete and 0 interrupted iterations
+default   [  32% ] 047/150 VUs  2m55.0s/9m00.0s
+
+running (2m56.0s), 047/150 VUs, 20460 complete and 0 interrupted iterations
+default   [  33% ] 047/150 VUs  2m56.0s/9m00.0s
+
+running (2m57.0s), 048/150 VUs, 20665 complete and 0 interrupted iterations
+default   [  33% ] 048/150 VUs  2m57.0s/9m00.0s
+
+running (2m58.0s), 048/150 VUs, 20877 complete and 0 interrupted iterations
+default   [  33% ] 048/150 VUs  2m58.0s/9m00.0s
+
+running (2m59.0s), 049/150 VUs, 21084 complete and 0 interrupted iterations
+default   [  33% ] 049/150 VUs  2m59.0s/9m00.0s
+
+running (3m00.0s), 049/150 VUs, 21276 complete and 0 interrupted iterations
+default   [  33% ] 049/150 VUs  3m00.0s/9m00.0s
+
+running (3m01.0s), 050/150 VUs, 21453 complete and 0 interrupted iterations
+default   [  34% ] 050/150 VUs  3m01.0s/9m00.0s
+
+running (3m02.0s), 050/150 VUs, 21667 complete and 0 interrupted iterations
+default   [  34% ] 050/150 VUs  3m02.0s/9m00.0s
+
+running (3m03.0s), 050/150 VUs, 21847 complete and 0 interrupted iterations
+default   [  34% ] 050/150 VUs  3m03.0s/9m00.0s
+
+running (3m04.0s), 050/150 VUs, 22050 complete and 0 interrupted iterations
+default   [  34% ] 050/150 VUs  3m04.0s/9m00.0s
+
+running (3m05.0s), 050/150 VUs, 22252 complete and 0 interrupted iterations
+default   [  34% ] 050/150 VUs  3m05.0s/9m00.0s
+
+running (3m06.0s), 050/150 VUs, 22459 complete and 0 interrupted iterations
+default   [  34% ] 050/150 VUs  3m06.0s/9m00.0s
+
+running (3m07.0s), 050/150 VUs, 22650 complete and 0 interrupted iterations
+default   [  35% ] 050/150 VUs  3m07.0s/9m00.0s
+
+running (3m08.0s), 050/150 VUs, 22836 complete and 0 interrupted iterations
+default   [  35% ] 050/150 VUs  3m08.0s/9m00.0s
+
+running (3m09.0s), 050/150 VUs, 23044 complete and 0 interrupted iterations
+default   [  35% ] 050/150 VUs  3m09.0s/9m00.0s
+
+running (3m10.0s), 050/150 VUs, 23245 complete and 0 interrupted iterations
+default   [  35% ] 050/150 VUs  3m10.0s/9m00.0s
+
+running (3m11.0s), 050/150 VUs, 23461 complete and 0 interrupted iterations
+default   [  35% ] 050/150 VUs  3m11.0s/9m00.0s
+
+running (3m12.0s), 050/150 VUs, 23642 complete and 0 interrupted iterations
+default   [  36% ] 050/150 VUs  3m12.0s/9m00.0s
+
+running (3m13.0s), 050/150 VUs, 23846 complete and 0 interrupted iterations
+default   [  36% ] 050/150 VUs  3m13.0s/9m00.0s
+
+running (3m14.0s), 050/150 VUs, 24049 complete and 0 interrupted iterations
+default   [  36% ] 050/150 VUs  3m14.0s/9m00.0s
+
+running (3m15.0s), 050/150 VUs, 24242 complete and 0 interrupted iterations
+default   [  36% ] 050/150 VUs  3m15.0s/9m00.0s
+
+running (3m16.0s), 050/150 VUs, 24449 complete and 0 interrupted iterations
+default   [  36% ] 050/150 VUs  3m16.0s/9m00.0s
+
+running (3m17.0s), 050/150 VUs, 24658 complete and 0 interrupted iterations
+default   [  36% ] 050/150 VUs  3m17.0s/9m00.0s
+
+running (3m18.0s), 050/150 VUs, 24833 complete and 0 interrupted iterations
+default   [  37% ] 050/150 VUs  3m18.0s/9m00.0s
+
+running (3m19.0s), 050/150 VUs, 25056 complete and 0 interrupted iterations
+default   [  37% ] 050/150 VUs  3m19.0s/9m00.0s
+
+running (3m20.0s), 050/150 VUs, 25250 complete and 0 interrupted iterations
+default   [  37% ] 050/150 VUs  3m20.0s/9m00.0s
+
+running (3m21.0s), 050/150 VUs, 25435 complete and 0 interrupted iterations
+default   [  37% ] 050/150 VUs  3m21.0s/9m00.0s
+
+running (3m22.0s), 050/150 VUs, 25627 complete and 0 interrupted iterations
+default   [  37% ] 050/150 VUs  3m22.0s/9m00.0s
+
+running (3m23.0s), 050/150 VUs, 25835 complete and 0 interrupted iterations
+default   [  38% ] 050/150 VUs  3m23.0s/9m00.0s
+
+running (3m24.0s), 050/150 VUs, 26020 complete and 0 interrupted iterations
+default   [  38% ] 050/150 VUs  3m24.0s/9m00.0s
+
+running (3m25.0s), 050/150 VUs, 26225 complete and 0 interrupted iterations
+default   [  38% ] 050/150 VUs  3m25.0s/9m00.0s
+
+running (3m26.0s), 050/150 VUs, 26429 complete and 0 interrupted iterations
+default   [  38% ] 050/150 VUs  3m26.0s/9m00.0s
+
+running (3m27.0s), 050/150 VUs, 26638 complete and 0 interrupted iterations
+default   [  38% ] 050/150 VUs  3m27.0s/9m00.0s
+
+running (3m28.0s), 050/150 VUs, 26831 complete and 0 interrupted iterations
+default   [  39% ] 050/150 VUs  3m28.0s/9m00.0s
+
+running (3m29.0s), 050/150 VUs, 27023 complete and 0 interrupted iterations
+default   [  39% ] 050/150 VUs  3m29.0s/9m00.0s
+
+running (3m30.0s), 050/150 VUs, 27217 complete and 0 interrupted iterations
+default   [  39% ] 050/150 VUs  3m30.0s/9m00.0s
+
+running (3m31.0s), 050/150 VUs, 27412 complete and 0 interrupted iterations
+default   [  39% ] 050/150 VUs  3m31.0s/9m00.0s
+
+running (3m32.0s), 050/150 VUs, 27618 complete and 0 interrupted iterations
+default   [  39% ] 050/150 VUs  3m32.0s/9m00.0s
+
+running (3m33.0s), 050/150 VUs, 27816 complete and 0 interrupted iterations
+default   [  39% ] 050/150 VUs  3m33.0s/9m00.0s
+
+running (3m34.0s), 050/150 VUs, 28028 complete and 0 interrupted iterations
+default   [  40% ] 050/150 VUs  3m34.0s/9m00.0s
+
+running (3m35.0s), 050/150 VUs, 28226 complete and 0 interrupted iterations
+default   [  40% ] 050/150 VUs  3m35.0s/9m00.0s
+
+running (3m36.0s), 050/150 VUs, 28426 complete and 0 interrupted iterations
+default   [  40% ] 050/150 VUs  3m36.0s/9m00.0s
+
+running (3m37.0s), 050/150 VUs, 28633 complete and 0 interrupted iterations
+default   [  40% ] 050/150 VUs  3m37.0s/9m00.0s
+
+running (3m38.0s), 050/150 VUs, 28833 complete and 0 interrupted iterations
+default   [  40% ] 050/150 VUs  3m38.0s/9m00.0s
+
+running (3m39.0s), 050/150 VUs, 29023 complete and 0 interrupted iterations
+default   [  41% ] 050/150 VUs  3m39.0s/9m00.0s
+
+running (3m40.0s), 050/150 VUs, 29240 complete and 0 interrupted iterations
+default   [  41% ] 050/150 VUs  3m40.0s/9m00.0s
+
+running (3m41.0s), 050/150 VUs, 29449 complete and 0 interrupted iterations
+default   [  41% ] 050/150 VUs  3m41.0s/9m00.0s
+
+running (3m42.0s), 050/150 VUs, 29645 complete and 0 interrupted iterations
+default   [  41% ] 050/150 VUs  3m42.0s/9m00.0s
+
+running (3m43.0s), 050/150 VUs, 29842 complete and 0 interrupted iterations
+default   [  41% ] 050/150 VUs  3m43.0s/9m00.0s
+
+running (3m44.0s), 050/150 VUs, 30038 complete and 0 interrupted iterations
+default   [  41% ] 050/150 VUs  3m44.0s/9m00.0s
+
+running (3m45.0s), 050/150 VUs, 30249 complete and 0 interrupted iterations
+default   [  42% ] 050/150 VUs  3m45.0s/9m00.0s
+
+running (3m46.0s), 050/150 VUs, 30462 complete and 0 interrupted iterations
+default   [  42% ] 050/150 VUs  3m46.0s/9m00.0s
+
+running (3m47.0s), 050/150 VUs, 30663 complete and 0 interrupted iterations
+default   [  42% ] 050/150 VUs  3m47.0s/9m00.0s
+
+running (3m48.0s), 050/150 VUs, 30864 complete and 0 interrupted iterations
+default   [  42% ] 050/150 VUs  3m48.0s/9m00.0s
+
+running (3m49.0s), 050/150 VUs, 31073 complete and 0 interrupted iterations
+default   [  42% ] 050/150 VUs  3m49.0s/9m00.0s
+
+running (3m50.0s), 050/150 VUs, 31267 complete and 0 interrupted iterations
+default   [  43% ] 050/150 VUs  3m50.0s/9m00.0s
+
+running (3m51.0s), 050/150 VUs, 31459 complete and 0 interrupted iterations
+default   [  43% ] 050/150 VUs  3m51.0s/9m00.0s
+
+running (3m52.0s), 050/150 VUs, 31665 complete and 0 interrupted iterations
+default   [  43% ] 050/150 VUs  3m52.0s/9m00.0s
+
+running (3m53.0s), 050/150 VUs, 31862 complete and 0 interrupted iterations
+default   [  43% ] 050/150 VUs  3m53.0s/9m00.0s
+
+running (3m54.0s), 050/150 VUs, 32069 complete and 0 interrupted iterations
+default   [  43% ] 050/150 VUs  3m54.0s/9m00.0s
+
+running (3m55.0s), 050/150 VUs, 32247 complete and 0 interrupted iterations
+default   [  44% ] 050/150 VUs  3m55.0s/9m00.0s
+
+running (3m56.0s), 050/150 VUs, 32440 complete and 0 interrupted iterations
+default   [  44% ] 050/150 VUs  3m56.0s/9m00.0s
+
+running (3m57.0s), 050/150 VUs, 32659 complete and 0 interrupted iterations
+default   [  44% ] 050/150 VUs  3m57.0s/9m00.0s
+
+running (3m58.0s), 050/150 VUs, 32863 complete and 0 interrupted iterations
+default   [  44% ] 050/150 VUs  3m58.0s/9m00.0s
+
+running (3m59.0s), 050/150 VUs, 33047 complete and 0 interrupted iterations
+default   [  44% ] 050/150 VUs  3m59.0s/9m00.0s
+
+running (4m00.0s), 050/150 VUs, 33235 complete and 0 interrupted iterations
+default   [  44% ] 050/150 VUs  4m00.0s/9m00.0s
+
+running (4m01.0s), 050/150 VUs, 33458 complete and 0 interrupted iterations
+default   [  45% ] 050/150 VUs  4m01.0s/9m00.0s
+
+running (4m02.0s), 051/150 VUs, 33645 complete and 0 interrupted iterations
+default   [  45% ] 051/150 VUs  4m02.0s/9m00.0s
+
+running (4m03.0s), 052/150 VUs, 33829 complete and 0 interrupted iterations
+default   [  45% ] 052/150 VUs  4m03.0s/9m00.0s
+
+running (4m04.0s), 053/150 VUs, 34048 complete and 0 interrupted iterations
+default   [  45% ] 053/150 VUs  4m04.0s/9m00.0s
+
+running (4m05.0s), 054/150 VUs, 34238 complete and 0 interrupted iterations
+default   [  45% ] 054/150 VUs  4m05.0s/9m00.0s
+
+running (4m06.0s), 054/150 VUs, 34450 complete and 0 interrupted iterations
+default   [  46% ] 054/150 VUs  4m06.0s/9m00.0s
+
+running (4m07.0s), 055/150 VUs, 34658 complete and 0 interrupted iterations
+default   [  46% ] 055/150 VUs  4m07.0s/9m00.0s
+
+running (4m08.0s), 056/150 VUs, 34863 complete and 0 interrupted iterations
+default   [  46% ] 056/150 VUs  4m08.0s/9m00.0s
+
+running (4m09.0s), 057/150 VUs, 35073 complete and 0 interrupted iterations
+default   [  46% ] 057/150 VUs  4m09.0s/9m00.0s
+
+running (4m10.0s), 058/150 VUs, 35268 complete and 0 interrupted iterations
+default   [  46% ] 058/150 VUs  4m10.0s/9m00.0s
+
+running (4m11.0s), 059/150 VUs, 35478 complete and 0 interrupted iterations
+default   [  46% ] 059/150 VUs  4m11.0s/9m00.0s
+
+running (4m12.0s), 059/150 VUs, 35697 complete and 0 interrupted iterations
+default   [  47% ] 059/150 VUs  4m12.0s/9m00.0s
+
+running (4m13.0s), 060/150 VUs, 35896 complete and 0 interrupted iterations
+default   [  47% ] 060/150 VUs  4m13.0s/9m00.0s
+
+running (4m14.0s), 061/150 VUs, 36121 complete and 0 interrupted iterations
+default   [  47% ] 061/150 VUs  4m14.0s/9m00.0s
+
+running (4m15.0s), 062/150 VUs, 36324 complete and 0 interrupted iterations
+default   [  47% ] 062/150 VUs  4m15.0s/9m00.0s
+
+running (4m16.0s), 063/150 VUs, 36546 complete and 0 interrupted iterations
+default   [  47% ] 063/150 VUs  4m16.0s/9m00.0s
+
+running (4m17.0s), 064/150 VUs, 36774 complete and 0 interrupted iterations
+default   [  48% ] 064/150 VUs  4m17.0s/9m00.0s
+
+running (4m18.0s), 064/150 VUs, 36998 complete and 0 interrupted iterations
+default   [  48% ] 064/150 VUs  4m18.0s/9m00.0s
+
+running (4m19.0s), 065/150 VUs, 37217 complete and 0 interrupted iterations
+default   [  48% ] 065/150 VUs  4m19.0s/9m00.0s
+
+running (4m20.0s), 066/150 VUs, 37445 complete and 0 interrupted iterations
+default   [  48% ] 066/150 VUs  4m20.0s/9m00.0s
+
+running (4m21.0s), 067/150 VUs, 37658 complete and 0 interrupted iterations
+default   [  48% ] 067/150 VUs  4m21.0s/9m00.0s
+
+running (4m22.0s), 068/150 VUs, 37865 complete and 0 interrupted iterations
+default   [  49% ] 068/150 VUs  4m22.0s/9m00.0s
+
+running (4m23.0s), 069/150 VUs, 38087 complete and 0 interrupted iterations
+default   [  49% ] 069/150 VUs  4m23.0s/9m00.0s
+
+running (4m24.0s), 069/150 VUs, 38323 complete and 0 interrupted iterations
+default   [  49% ] 069/150 VUs  4m24.0s/9m00.0s
+
+running (4m25.0s), 070/150 VUs, 38546 complete and 0 interrupted iterations
+default   [  49% ] 070/150 VUs  4m25.0s/9m00.0s
+
+running (4m26.0s), 071/150 VUs, 38773 complete and 0 interrupted iterations
+default   [  49% ] 071/150 VUs  4m26.0s/9m00.0s
+
+running (4m27.0s), 072/150 VUs, 38998 complete and 0 interrupted iterations
+default   [  49% ] 072/150 VUs  4m27.0s/9m00.0s
+
+running (4m28.0s), 073/150 VUs, 39250 complete and 0 interrupted iterations
+default   [  50% ] 073/150 VUs  4m28.0s/9m00.0s
+
+running (4m29.0s), 074/150 VUs, 39486 complete and 0 interrupted iterations
+default   [  50% ] 074/150 VUs  4m29.0s/9m00.0s
+
+running (4m30.0s), 074/150 VUs, 39721 complete and 0 interrupted iterations
+default   [  50% ] 074/150 VUs  4m30.0s/9m00.0s
+
+running (4m31.0s), 075/150 VUs, 39956 complete and 0 interrupted iterations
+default   [  50% ] 075/150 VUs  4m31.0s/9m00.0s
+
+running (4m32.0s), 076/150 VUs, 40182 complete and 0 interrupted iterations
+default   [  50% ] 076/150 VUs  4m32.0s/9m00.0s
+
+running (4m33.0s), 077/150 VUs, 40422 complete and 0 interrupted iterations
+default   [  51% ] 077/150 VUs  4m33.0s/9m00.0s
+
+running (4m34.0s), 078/150 VUs, 40648 complete and 0 interrupted iterations
+default   [  51% ] 078/150 VUs  4m34.0s/9m00.0s
+
+running (4m35.0s), 079/150 VUs, 40884 complete and 0 interrupted iterations
+default   [  51% ] 079/150 VUs  4m35.0s/9m00.0s
+
+running (4m36.0s), 079/150 VUs, 41126 complete and 0 interrupted iterations
+default   [  51% ] 079/150 VUs  4m36.0s/9m00.0s
+
+running (4m37.0s), 080/150 VUs, 41350 complete and 0 interrupted iterations
+default   [  51% ] 080/150 VUs  4m37.0s/9m00.0s
+
+running (4m38.0s), 081/150 VUs, 41598 complete and 0 interrupted iterations
+default   [  51% ] 081/150 VUs  4m38.0s/9m00.0s
+
+running (4m39.0s), 082/150 VUs, 41827 complete and 0 interrupted iterations
+default   [  52% ] 082/150 VUs  4m39.0s/9m00.0s
+
+running (4m40.0s), 083/150 VUs, 42073 complete and 0 interrupted iterations
+default   [  52% ] 083/150 VUs  4m40.0s/9m00.0s
+
+running (4m41.0s), 084/150 VUs, 42302 complete and 0 interrupted iterations
+default   [  52% ] 084/150 VUs  4m41.0s/9m00.0s
+
+running (4m42.0s), 084/150 VUs, 42520 complete and 0 interrupted iterations
+default   [  52% ] 084/150 VUs  4m42.0s/9m00.0s
+
+running (4m43.0s), 085/150 VUs, 42768 complete and 0 interrupted iterations
+default   [  52% ] 085/150 VUs  4m43.0s/9m00.0s
+
+running (4m44.0s), 086/150 VUs, 43004 complete and 0 interrupted iterations
+default   [  53% ] 086/150 VUs  4m44.0s/9m00.0s
+
+running (4m45.0s), 087/150 VUs, 43259 complete and 0 interrupted iterations
+default   [  53% ] 087/150 VUs  4m45.0s/9m00.0s
+
+running (4m46.0s), 088/150 VUs, 43498 complete and 0 interrupted iterations
+default   [  53% ] 088/150 VUs  4m46.0s/9m00.0s
+
+running (4m47.0s), 089/150 VUs, 43716 complete and 0 interrupted iterations
+default   [  53% ] 089/150 VUs  4m47.0s/9m00.0s
+
+running (4m48.0s), 089/150 VUs, 43925 complete and 0 interrupted iterations
+default   [  53% ] 089/150 VUs  4m48.0s/9m00.0s
+
+running (4m49.0s), 090/150 VUs, 44160 complete and 0 interrupted iterations
+default   [  54% ] 090/150 VUs  4m49.0s/9m00.0s
+
+running (4m50.0s), 091/150 VUs, 44393 complete and 0 interrupted iterations
+default   [  54% ] 091/150 VUs  4m50.0s/9m00.0s
+
+running (4m51.0s), 092/150 VUs, 44636 complete and 0 interrupted iterations
+default   [  54% ] 092/150 VUs  4m51.0s/9m00.0s
+
+running (4m52.0s), 093/150 VUs, 44871 complete and 0 interrupted iterations
+default   [  54% ] 093/150 VUs  4m52.0s/9m00.0s
+
+running (4m53.0s), 094/150 VUs, 45098 complete and 0 interrupted iterations
+default   [  54% ] 094/150 VUs  4m53.0s/9m00.0s
+
+running (4m54.0s), 094/150 VUs, 45338 complete and 0 interrupted iterations
+default   [  54% ] 094/150 VUs  4m54.0s/9m00.0s
+
+running (4m55.0s), 095/150 VUs, 45576 complete and 0 interrupted iterations
+default   [  55% ] 095/150 VUs  4m55.0s/9m00.0s
+
+running (4m56.0s), 096/150 VUs, 45809 complete and 0 interrupted iterations
+default   [  55% ] 096/150 VUs  4m56.0s/9m00.0s
+
+running (4m57.0s), 097/150 VUs, 46044 complete and 0 interrupted iterations
+default   [  55% ] 097/150 VUs  4m57.0s/9m00.0s
+
+running (4m58.0s), 098/150 VUs, 46254 complete and 0 interrupted iterations
+default   [  55% ] 098/150 VUs  4m58.0s/9m00.0s
+
+running (4m59.0s), 099/150 VUs, 46483 complete and 0 interrupted iterations
+default   [  55% ] 099/150 VUs  4m59.0s/9m00.0s
+
+running (5m00.0s), 099/150 VUs, 46722 complete and 0 interrupted iterations
+default   [  56% ] 099/150 VUs  5m00.0s/9m00.0s
+
+running (5m01.0s), 100/150 VUs, 46948 complete and 0 interrupted iterations
+default   [  56% ] 100/150 VUs  5m01.0s/9m00.0s
+
+running (5m02.0s), 100/150 VUs, 47182 complete and 0 interrupted iterations
+default   [  56% ] 100/150 VUs  5m02.0s/9m00.0s
+
+running (5m03.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  56% ] 100/150 VUs  5m03.0s/9m00.0s
+
+running (5m04.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  56% ] 100/150 VUs  5m04.0s/9m00.0s
+
+running (5m05.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  56% ] 100/150 VUs  5m05.0s/9m00.0s
+
+running (5m06.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  57% ] 100/150 VUs  5m06.0s/9m00.0s
+
+running (5m07.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  57% ] 100/150 VUs  5m07.0s/9m00.0s
+
+running (5m08.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  57% ] 100/150 VUs  5m08.0s/9m00.0s
+
+running (5m09.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  57% ] 100/150 VUs  5m09.0s/9m00.0s
+
+running (5m10.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  57% ] 100/150 VUs  5m10.0s/9m00.0s
+
+running (5m11.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  58% ] 100/150 VUs  5m11.0s/9m00.0s
+
+running (5m12.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  58% ] 100/150 VUs  5m12.0s/9m00.0s
+
+running (5m13.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  58% ] 100/150 VUs  5m13.0s/9m00.0s
+
+running (5m14.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  58% ] 100/150 VUs  5m14.0s/9m00.0s
+
+running (5m15.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  58% ] 100/150 VUs  5m15.0s/9m00.0s
+
+running (5m16.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  59% ] 100/150 VUs  5m16.0s/9m00.0s
+
+running (5m17.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  59% ] 100/150 VUs  5m17.0s/9m00.0s
+
+running (5m18.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  59% ] 100/150 VUs  5m18.0s/9m00.0s
+
+running (5m19.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  59% ] 100/150 VUs  5m19.0s/9m00.0s
+
+running (5m20.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  59% ] 100/150 VUs  5m20.0s/9m00.0s
+
+running (5m21.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  59% ] 100/150 VUs  5m21.0s/9m00.0s
+
+running (5m22.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  60% ] 100/150 VUs  5m22.0s/9m00.0s
+
+running (5m23.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  60% ] 100/150 VUs  5m23.0s/9m00.0s
+
+running (5m24.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  60% ] 100/150 VUs  5m24.0s/9m00.0s
+
+running (5m25.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  60% ] 100/150 VUs  5m25.0s/9m00.0s
+
+running (5m26.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  60% ] 100/150 VUs  5m26.0s/9m00.0s
+
+running (5m27.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  61% ] 100/150 VUs  5m27.0s/9m00.0s
+
+running (5m28.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  61% ] 100/150 VUs  5m28.0s/9m00.0s
+
+running (5m29.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  61% ] 100/150 VUs  5m29.0s/9m00.0s
+
+running (5m30.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  61% ] 100/150 VUs  5m30.0s/9m00.0s
+
+running (5m31.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  61% ] 100/150 VUs  5m31.0s/9m00.0s
+
+running (5m32.0s), 100/150 VUs, 47326 complete and 0 interrupted iterations
+default   [  61% ] 100/150 VUs  5m32.0s/9m00.0s
+
+running (5m33.0s), 100/150 VUs, 47498 complete and 0 interrupted iterations
+default   [  62% ] 100/150 VUs  5m33.0s/9m00.0s
+
+running (5m34.0s), 100/150 VUs, 47721 complete and 0 interrupted iterations
+default   [  62% ] 100/150 VUs  5m34.0s/9m00.0s
+
+running (5m35.0s), 100/150 VUs, 47950 complete and 0 interrupted iterations
+default   [  62% ] 100/150 VUs  5m35.0s/9m00.0s
+
+running (5m36.0s), 100/150 VUs, 48191 complete and 0 interrupted iterations
+default   [  62% ] 100/150 VUs  5m36.0s/9m00.0s
+
+running (5m37.0s), 100/150 VUs, 48426 complete and 0 interrupted iterations
+default   [  62% ] 100/150 VUs  5m37.0s/9m00.0s
+
+running (5m38.0s), 100/150 VUs, 48665 complete and 0 interrupted iterations
+default   [  63% ] 100/150 VUs  5m38.0s/9m00.0s
+
+running (5m39.0s), 100/150 VUs, 48882 complete and 0 interrupted iterations
+default   [  63% ] 100/150 VUs  5m39.0s/9m00.0s
+
+running (5m40.0s), 100/150 VUs, 49103 complete and 0 interrupted iterations
+default   [  63% ] 100/150 VUs  5m40.0s/9m00.0s
+
+running (5m41.0s), 100/150 VUs, 49332 complete and 0 interrupted iterations
+default   [  63% ] 100/150 VUs  5m41.0s/9m00.0s
+
+running (5m42.0s), 100/150 VUs, 49559 complete and 0 interrupted iterations
+default   [  63% ] 100/150 VUs  5m42.0s/9m00.0s
+
+running (5m43.0s), 100/150 VUs, 49769 complete and 0 interrupted iterations
+default   [  64% ] 100/150 VUs  5m43.0s/9m00.0s
+
+running (5m44.0s), 100/150 VUs, 49996 complete and 0 interrupted iterations
+default   [  64% ] 100/150 VUs  5m44.0s/9m00.0s
+
+running (5m45.0s), 100/150 VUs, 50215 complete and 0 interrupted iterations
+default   [  64% ] 100/150 VUs  5m45.0s/9m00.0s
+
+running (5m46.0s), 100/150 VUs, 50443 complete and 0 interrupted iterations
+default   [  64% ] 100/150 VUs  5m46.0s/9m00.0s
+
+running (5m47.0s), 100/150 VUs, 50672 complete and 0 interrupted iterations
+default   [  64% ] 100/150 VUs  5m47.0s/9m00.0s
+
+running (5m48.0s), 100/150 VUs, 50896 complete and 0 interrupted iterations
+default   [  64% ] 100/150 VUs  5m48.0s/9m00.0s
+
+running (5m49.0s), 100/150 VUs, 51141 complete and 0 interrupted iterations
+default   [  65% ] 100/150 VUs  5m49.0s/9m00.0s
+
+running (5m50.0s), 100/150 VUs, 51344 complete and 0 interrupted iterations
+default   [  65% ] 100/150 VUs  5m50.0s/9m00.0s
+
+running (5m51.0s), 100/150 VUs, 51579 complete and 0 interrupted iterations
+default   [  65% ] 100/150 VUs  5m51.0s/9m00.0s
+
+running (5m52.0s), 100/150 VUs, 51829 complete and 0 interrupted iterations
+default   [  65% ] 100/150 VUs  5m52.0s/9m00.0s
+
+running (5m53.0s), 100/150 VUs, 52052 complete and 0 interrupted iterations
+default   [  65% ] 100/150 VUs  5m53.0s/9m00.0s
+
+running (5m54.0s), 100/150 VUs, 52276 complete and 0 interrupted iterations
+default   [  66% ] 100/150 VUs  5m54.0s/9m00.0s
+
+running (5m55.0s), 100/150 VUs, 52506 complete and 0 interrupted iterations
+default   [  66% ] 100/150 VUs  5m55.0s/9m00.0s
+
+running (5m56.0s), 100/150 VUs, 52717 complete and 0 interrupted iterations
+default   [  66% ] 100/150 VUs  5m56.0s/9m00.0s
+
+running (5m57.0s), 100/150 VUs, 52954 complete and 0 interrupted iterations
+default   [  66% ] 100/150 VUs  5m57.0s/9m00.0s
+
+running (5m58.0s), 100/150 VUs, 53190 complete and 0 interrupted iterations
+default   [  66% ] 100/150 VUs  5m58.0s/9m00.0s
+
+running (5m59.0s), 100/150 VUs, 53419 complete and 0 interrupted iterations
+default   [  66% ] 100/150 VUs  5m59.0s/9m00.0s
+
+running (6m00.0s), 100/150 VUs, 53636 complete and 0 interrupted iterations
+default   [  67% ] 100/150 VUs  6m00.0s/9m00.0s
+
+running (6m01.0s), 100/150 VUs, 53868 complete and 0 interrupted iterations
+default   [  67% ] 100/150 VUs  6m01.0s/9m00.0s
+
+running (6m02.0s), 101/150 VUs, 54098 complete and 0 interrupted iterations
+default   [  67% ] 101/150 VUs  6m02.0s/9m00.0s
+
+running (6m03.0s), 102/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  67% ] 102/150 VUs  6m03.0s/9m00.0s
+
+running (6m04.0s), 103/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  67% ] 103/150 VUs  6m04.0s/9m00.0s
+
+running (6m05.0s), 104/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  68% ] 104/150 VUs  6m05.0s/9m00.0s
+
+running (6m06.0s), 104/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  68% ] 104/150 VUs  6m06.0s/9m00.0s
+
+running (6m07.0s), 105/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  68% ] 105/150 VUs  6m07.0s/9m00.0s
+
+running (6m08.0s), 106/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  68% ] 106/150 VUs  6m08.0s/9m00.0s
+
+running (6m09.0s), 107/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  68% ] 107/150 VUs  6m09.0s/9m00.0s
+
+running (6m10.0s), 108/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  69% ] 108/150 VUs  6m10.0s/9m00.0s
+
+running (6m11.0s), 109/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  69% ] 109/150 VUs  6m11.0s/9m00.0s
+
+running (6m12.0s), 109/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  69% ] 109/150 VUs  6m12.0s/9m00.0s
+
+running (6m13.0s), 110/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  69% ] 110/150 VUs  6m13.0s/9m00.0s
+
+running (6m14.0s), 111/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  69% ] 111/150 VUs  6m14.0s/9m00.0s
+
+running (6m15.0s), 112/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  69% ] 112/150 VUs  6m15.0s/9m00.0s
+
+running (6m16.0s), 113/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  70% ] 113/150 VUs  6m16.0s/9m00.0s
+
+running (6m17.0s), 114/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  70% ] 114/150 VUs  6m17.0s/9m00.0s
+
+running (6m18.0s), 114/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  70% ] 114/150 VUs  6m18.0s/9m00.0s
+
+running (6m19.0s), 115/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  70% ] 115/150 VUs  6m19.0s/9m00.0s
+
+running (6m20.0s), 116/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  70% ] 116/150 VUs  6m20.0s/9m00.0s
+
+running (6m21.0s), 117/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  71% ] 117/150 VUs  6m21.0s/9m00.0s
+
+running (6m22.0s), 118/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  71% ] 118/150 VUs  6m22.0s/9m00.0s
+
+running (6m23.0s), 119/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  71% ] 119/150 VUs  6m23.0s/9m00.0s
+
+running (6m24.0s), 119/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  71% ] 119/150 VUs  6m24.0s/9m00.0s
+
+running (6m25.0s), 120/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  71% ] 120/150 VUs  6m25.0s/9m00.0s
+
+running (6m26.0s), 121/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  71% ] 121/150 VUs  6m26.0s/9m00.0s
+
+running (6m27.0s), 122/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  72% ] 122/150 VUs  6m27.0s/9m00.0s
+
+running (6m28.0s), 123/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  72% ] 123/150 VUs  6m28.0s/9m00.0s
+
+running (6m29.0s), 124/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  72% ] 124/150 VUs  6m29.0s/9m00.0s
+
+running (6m30.0s), 124/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  72% ] 124/150 VUs  6m30.0s/9m00.0s
+
+running (6m31.0s), 125/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  72% ] 125/150 VUs  6m31.0s/9m00.0s
+
+running (6m32.0s), 126/150 VUs, 54177 complete and 0 interrupted iterations
+default   [  73% ] 126/150 VUs  6m32.0s/9m00.0s
+
+running (6m33.0s), 127/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  73% ] 127/150 VUs  6m33.0s/9m00.0s
+
+running (6m34.0s), 128/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  73% ] 128/150 VUs  6m34.0s/9m00.0s
+
+running (6m35.0s), 129/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  73% ] 129/150 VUs  6m35.0s/9m00.0s
+
+running (6m36.0s), 129/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  73% ] 129/150 VUs  6m36.0s/9m00.0s
+
+running (6m37.0s), 130/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  74% ] 130/150 VUs  6m37.0s/9m00.0s
+
+running (6m38.0s), 131/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  74% ] 131/150 VUs  6m38.0s/9m00.0s
+
+running (6m39.0s), 132/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  74% ] 132/150 VUs  6m39.0s/9m00.0s
+
+running (6m40.0s), 133/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  74% ] 133/150 VUs  6m40.0s/9m00.0s
+
+running (6m41.0s), 134/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  74% ] 134/150 VUs  6m41.0s/9m00.0s
+
+running (6m42.0s), 134/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  74% ] 134/150 VUs  6m42.0s/9m00.0s
+
+running (6m43.0s), 135/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  75% ] 135/150 VUs  6m43.0s/9m00.0s
+
+running (6m44.0s), 136/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  75% ] 136/150 VUs  6m44.0s/9m00.0s
+
+running (6m45.0s), 137/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  75% ] 137/150 VUs  6m45.0s/9m00.0s
+
+running (6m46.0s), 138/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  75% ] 138/150 VUs  6m46.0s/9m00.0s
+
+running (6m47.0s), 139/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  75% ] 139/150 VUs  6m47.0s/9m00.0s
+
+running (6m48.0s), 139/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  76% ] 139/150 VUs  6m48.0s/9m00.0s
+
+running (6m49.0s), 140/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  76% ] 140/150 VUs  6m49.0s/9m00.0s
+
+running (6m50.0s), 141/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  76% ] 141/150 VUs  6m50.0s/9m00.0s
+
+running (6m51.0s), 142/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  76% ] 142/150 VUs  6m51.0s/9m00.0s
+
+running (6m52.0s), 143/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  76% ] 143/150 VUs  6m52.0s/9m00.0s
+
+running (6m53.0s), 144/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  76% ] 144/150 VUs  6m53.0s/9m00.0s
+
+running (6m54.0s), 144/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  77% ] 144/150 VUs  6m54.0s/9m00.0s
+
+running (6m55.0s), 145/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  77% ] 145/150 VUs  6m55.0s/9m00.0s
+
+running (6m56.0s), 146/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  77% ] 146/150 VUs  6m56.0s/9m00.0s
+
+running (6m57.0s), 147/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  77% ] 147/150 VUs  6m57.0s/9m00.0s
+
+running (6m58.0s), 148/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  77% ] 148/150 VUs  6m58.0s/9m00.0s
+
+running (6m59.0s), 149/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  78% ] 149/150 VUs  6m59.0s/9m00.0s
+
+running (7m00.0s), 149/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  78% ] 149/150 VUs  7m00.0s/9m00.0s
+
+running (7m01.0s), 150/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  78% ] 150/150 VUs  7m01.0s/9m00.0s
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (7m02.0s), 150/150 VUs, 54229 complete and 0 interrupted iterations
+default   [  78% ] 150/150 VUs  7m02.0s/9m00.0s
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:52Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:01:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (7m03.0s), 150/150 VUs, 54294 complete and 0 interrupted iterations
+default   [  78% ] 150/150 VUs  7m03.0s/9m00.0s
+time="2026-02-26T05:01:54Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (7m04.0s), 150/150 VUs, 54295 complete and 0 interrupted iterations
+default   [  79% ] 150/150 VUs  7m04.0s/9m00.0s
+
+running (7m05.0s), 150/150 VUs, 54295 complete and 0 interrupted iterations
+default   [  79% ] 150/150 VUs  7m05.0s/9m00.0s
+
+running (7m06.0s), 150/150 VUs, 54295 complete and 0 interrupted iterations
+default   [  79% ] 150/150 VUs  7m06.0s/9m00.0s
+
+running (7m07.0s), 150/150 VUs, 54295 complete and 0 interrupted iterations
+default   [  79% ] 150/150 VUs  7m07.0s/9m00.0s
+
+running (7m08.0s), 150/150 VUs, 54295 complete and 0 interrupted iterations
+default   [  79% ] 150/150 VUs  7m08.0s/9m00.0s
+
+running (7m09.0s), 150/150 VUs, 54295 complete and 0 interrupted iterations
+default   [  79% ] 150/150 VUs  7m09.0s/9m00.0s
+
+running (7m10.0s), 150/150 VUs, 54295 complete and 0 interrupted iterations
+default   [  80% ] 150/150 VUs  7m10.0s/9m00.0s
+
+running (7m11.0s), 150/150 VUs, 54295 complete and 0 interrupted iterations
+default   [  80% ] 150/150 VUs  7m11.0s/9m00.0s
+
+running (7m12.0s), 150/150 VUs, 54295 complete and 0 interrupted iterations
+default   [  80% ] 150/150 VUs  7m12.0s/9m00.0s
+time="2026-02-26T05:02:02Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (7m13.0s), 150/150 VUs, 54296 complete and 0 interrupted iterations
+default   [  80% ] 150/150 VUs  7m13.0s/9m00.0s
+time="2026-02-26T05:02:04Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (7m14.0s), 150/150 VUs, 54297 complete and 0 interrupted iterations
+default   [  80% ] 150/150 VUs  7m14.0s/9m00.0s
+
+running (7m15.0s), 150/150 VUs, 54297 complete and 0 interrupted iterations
+default   [  81% ] 150/150 VUs  7m15.0s/9m00.0s
+
+running (7m16.0s), 150/150 VUs, 54297 complete and 0 interrupted iterations
+default   [  81% ] 150/150 VUs  7m16.0s/9m00.0s
+time="2026-02-26T05:02:07Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (7m17.0s), 150/150 VUs, 54297 complete and 0 interrupted iterations
+default   [  81% ] 150/150 VUs  7m17.0s/9m00.0s
+
+running (7m18.0s), 150/150 VUs, 54298 complete and 0 interrupted iterations
+default   [  81% ] 150/150 VUs  7m18.0s/9m00.0s
+time="2026-02-26T05:02:08Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (7m19.0s), 150/150 VUs, 54299 complete and 0 interrupted iterations
+default   [  81% ] 150/150 VUs  7m19.0s/9m00.0s
+time="2026-02-26T05:02:10Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (7m20.0s), 150/150 VUs, 54300 complete and 0 interrupted iterations
+default   [  81% ] 150/150 VUs  7m20.0s/9m00.0s
+time="2026-02-26T05:02:11Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (7m21.0s), 150/150 VUs, 54301 complete and 0 interrupted iterations
+default   [  82% ] 150/150 VUs  7m21.0s/9m00.0s
+
+running (7m22.0s), 150/150 VUs, 54301 complete and 0 interrupted iterations
+default   [  82% ] 150/150 VUs  7m22.0s/9m00.0s
+
+running (7m23.0s), 150/150 VUs, 54301 complete and 0 interrupted iterations
+default   [  82% ] 150/150 VUs  7m23.0s/9m00.0s
+
+running (7m24.0s), 150/150 VUs, 54301 complete and 0 interrupted iterations
+default   [  82% ] 150/150 VUs  7m24.0s/9m00.0s
+
+running (7m25.0s), 150/150 VUs, 54301 complete and 0 interrupted iterations
+default   [  82% ] 150/150 VUs  7m25.0s/9m00.0s
+time="2026-02-26T05:02:16Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (7m26.0s), 150/150 VUs, 54302 complete and 0 interrupted iterations
+default   [  83% ] 150/150 VUs  7m26.0s/9m00.0s
+
+running (7m27.0s), 150/150 VUs, 54302 complete and 0 interrupted iterations
+default   [  83% ] 150/150 VUs  7m27.0s/9m00.0s
+
+running (7m28.0s), 150/150 VUs, 54302 complete and 0 interrupted iterations
+default   [  83% ] 150/150 VUs  7m28.0s/9m00.0s
+time="2026-02-26T05:02:19Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (7m29.0s), 150/150 VUs, 54302 complete and 0 interrupted iterations
+default   [  83% ] 150/150 VUs  7m29.0s/9m00.0s
+
+running (7m30.0s), 150/150 VUs, 54303 complete and 0 interrupted iterations
+default   [  83% ] 150/150 VUs  7m30.0s/9m00.0s
+time="2026-02-26T05:02:20Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (7m31.0s), 150/150 VUs, 54304 complete and 0 interrupted iterations
+default   [  84% ] 150/150 VUs  7m31.0s/9m00.0s
+
+running (7m32.0s), 150/150 VUs, 54304 complete and 0 interrupted iterations
+default   [  84% ] 150/150 VUs  7m32.0s/9m00.0s
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (7m33.0s), 150/150 VUs, 54376 complete and 0 interrupted iterations
+default   [  84% ] 150/150 VUs  7m33.0s/9m00.0s
+
+running (7m34.0s), 150/150 VUs, 54376 complete and 0 interrupted iterations
+default   [  84% ] 150/150 VUs  7m34.0s/9m00.0s
+
+running (7m35.0s), 150/150 VUs, 54376 complete and 0 interrupted iterations
+default   [  84% ] 150/150 VUs  7m35.0s/9m00.0s
+
+running (7m36.0s), 150/150 VUs, 54376 complete and 0 interrupted iterations
+default   [  84% ] 150/150 VUs  7m36.0s/9m00.0s
+
+running (7m37.0s), 150/150 VUs, 54376 complete and 0 interrupted iterations
+default   [  85% ] 150/150 VUs  7m37.0s/9m00.0s
+time="2026-02-26T05:02:28Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (7m38.0s), 150/150 VUs, 54377 complete and 0 interrupted iterations
+default   [  85% ] 150/150 VUs  7m38.0s/9m00.0s
+
+running (7m39.0s), 150/150 VUs, 54377 complete and 0 interrupted iterations
+default   [  85% ] 150/150 VUs  7m39.0s/9m00.0s
+
+running (7m40.0s), 150/150 VUs, 54377 complete and 0 interrupted iterations
+default   [  85% ] 150/150 VUs  7m40.0s/9m00.0s
+
+running (7m41.0s), 150/150 VUs, 54377 complete and 0 interrupted iterations
+default   [  85% ] 150/150 VUs  7m41.0s/9m00.0s
+
+running (7m42.0s), 150/150 VUs, 54377 complete and 0 interrupted iterations
+default   [  86% ] 150/150 VUs  7m42.0s/9m00.0s
+
+running (7m43.0s), 150/150 VUs, 54377 complete and 0 interrupted iterations
+default   [  86% ] 150/150 VUs  7m43.0s/9m00.0s
+
+running (7m44.0s), 150/150 VUs, 54377 complete and 0 interrupted iterations
+default   [  86% ] 150/150 VUs  7m44.0s/9m00.0s
+time="2026-02-26T05:02:35Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (7m45.0s), 150/150 VUs, 54378 complete and 0 interrupted iterations
+default   [  86% ] 150/150 VUs  7m45.0s/9m00.0s
+
+running (7m46.0s), 150/150 VUs, 54378 complete and 0 interrupted iterations
+default   [  86% ] 150/150 VUs  7m46.0s/9m00.0s
+time="2026-02-26T05:02:37Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+
+running (7m47.0s), 150/150 VUs, 54379 complete and 0 interrupted iterations
+default   [  86% ] 150/150 VUs  7m47.0s/9m00.0s
+
+running (7m48.0s), 150/150 VUs, 54379 complete and 0 interrupted iterations
+default   [  87% ] 150/150 VUs  7m48.0s/9m00.0s
+
+running (7m49.0s), 150/150 VUs, 54379 complete and 0 interrupted iterations
+default   [  87% ] 150/150 VUs  7m49.0s/9m00.0s
+
+running (7m50.0s), 150/150 VUs, 54379 complete and 0 interrupted iterations
+default   [  87% ] 150/150 VUs  7m50.0s/9m00.0s
+time="2026-02-26T05:02:41Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (7m51.0s), 150/150 VUs, 54380 complete and 0 interrupted iterations
+default   [  87% ] 150/150 VUs  7m51.0s/9m00.0s
+time="2026-02-26T05:02:42Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+
+running (7m52.0s), 150/150 VUs, 54381 complete and 0 interrupted iterations
+default   [  87% ] 150/150 VUs  7m52.0s/9m00.0s
+
+running (7m53.0s), 150/150 VUs, 54381 complete and 0 interrupted iterations
+default   [  88% ] 150/150 VUs  7m53.0s/9m00.0s
+
+running (7m54.0s), 150/150 VUs, 54381 complete and 0 interrupted iterations
+default   [  88% ] 150/150 VUs  7m54.0s/9m00.0s
+time="2026-02-26T05:02:44Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (7m55.0s), 150/150 VUs, 54382 complete and 0 interrupted iterations
+default   [  88% ] 150/150 VUs  7m55.0s/9m00.0s
+
+running (7m56.0s), 150/150 VUs, 54382 complete and 0 interrupted iterations
+default   [  88% ] 150/150 VUs  7m56.0s/9m00.0s
+
+running (7m57.0s), 150/150 VUs, 54382 complete and 0 interrupted iterations
+default   [  88% ] 150/150 VUs  7m57.0s/9m00.0s
+time="2026-02-26T05:02:48Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (7m58.0s), 150/150 VUs, 54383 complete and 0 interrupted iterations
+default   [  89% ] 150/150 VUs  7m58.0s/9m00.0s
+time="2026-02-26T05:02:49Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (7m59.0s), 150/150 VUs, 54384 complete and 0 interrupted iterations
+default   [  89% ] 150/150 VUs  7m59.0s/9m00.0s
+
+running (8m00.0s), 150/150 VUs, 54384 complete and 0 interrupted iterations
+default   [  89% ] 150/150 VUs  8m00.0s/9m00.0s
+
+running (8m01.0s), 150/150 VUs, 54384 complete and 0 interrupted iterations
+default   [  89% ] 150/150 VUs  8m01.0s/9m00.0s
+
+running (8m02.0s), 150/150 VUs, 54384 complete and 0 interrupted iterations
+default   [  89% ] 150/150 VUs  8m02.0s/9m00.0s
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:02:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (8m03.0s), 150/150 VUs, 54453 complete and 0 interrupted iterations
+default   [  89% ] 150/150 VUs  8m03.0s/9m00.0s
+time="2026-02-26T05:02:54Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (8m04.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  90% ] 150/150 VUs  8m04.0s/9m00.0s
+
+running (8m05.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  90% ] 150/150 VUs  8m05.0s/9m00.0s
+
+running (8m06.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  90% ] 150/150 VUs  8m06.0s/9m00.0s
+
+running (8m07.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  90% ] 150/150 VUs  8m07.0s/9m00.0s
+
+running (8m08.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  90% ] 150/150 VUs  8m08.0s/9m00.0s
+
+running (8m09.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  91% ] 150/150 VUs  8m09.0s/9m00.0s
+
+running (8m10.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  91% ] 150/150 VUs  8m10.0s/9m00.0s
+
+running (8m11.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  91% ] 150/150 VUs  8m11.0s/9m00.0s
+
+running (8m12.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  91% ] 150/150 VUs  8m12.0s/9m00.0s
+
+running (8m13.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  91% ] 150/150 VUs  8m13.0s/9m00.0s
+
+running (8m14.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  91% ] 150/150 VUs  8m14.0s/9m00.0s
+
+running (8m15.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  92% ] 150/150 VUs  8m15.0s/9m00.0s
+
+running (8m16.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  92% ] 150/150 VUs  8m16.0s/9m00.0s
+
+running (8m17.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  92% ] 150/150 VUs  8m17.0s/9m00.0s
+
+running (8m18.0s), 150/150 VUs, 54454 complete and 0 interrupted iterations
+default   [  92% ] 150/150 VUs  8m18.0s/9m00.0s
+time="2026-02-26T05:03:09Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (8m19.0s), 149/150 VUs, 54455 complete and 0 interrupted iterations
+default   [  92% ] 149/150 VUs  8m19.0s/9m00.0s
+time="2026-02-26T05:03:10Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (8m20.0s), 148/150 VUs, 54456 complete and 0 interrupted iterations
+default   [  93% ] 148/150 VUs  8m20.0s/9m00.0s
+
+running (8m21.0s), 148/150 VUs, 54456 complete and 0 interrupted iterations
+default   [  93% ] 148/150 VUs  8m21.0s/9m00.0s
+
+running (8m22.0s), 148/150 VUs, 54456 complete and 0 interrupted iterations
+default   [  93% ] 148/150 VUs  8m22.0s/9m00.0s
+
+running (8m23.0s), 148/150 VUs, 54456 complete and 0 interrupted iterations
+default   [  93% ] 148/150 VUs  8m23.0s/9m00.0s
+
+running (8m24.0s), 148/150 VUs, 54456 complete and 0 interrupted iterations
+default   [  93% ] 148/150 VUs  8m24.0s/9m00.0s
+
+running (8m25.0s), 148/150 VUs, 54456 complete and 0 interrupted iterations
+default   [  94% ] 148/150 VUs  8m25.0s/9m00.0s
+
+running (8m26.0s), 148/150 VUs, 54456 complete and 0 interrupted iterations
+default   [  94% ] 148/150 VUs  8m26.0s/9m00.0s
+
+running (8m27.0s), 148/150 VUs, 54456 complete and 0 interrupted iterations
+default   [  94% ] 148/150 VUs  8m27.0s/9m00.0s
+
+running (8m28.0s), 148/150 VUs, 54456 complete and 0 interrupted iterations
+default   [  94% ] 148/150 VUs  8m28.0s/9m00.0s
+
+running (8m29.0s), 148/150 VUs, 54456 complete and 0 interrupted iterations
+default   [  94% ] 148/150 VUs  8m29.0s/9m00.0s
+time="2026-02-26T05:03:20Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+
+running (8m30.0s), 147/150 VUs, 54457 complete and 0 interrupted iterations
+default   [  94% ] 147/150 VUs  8m30.0s/9m00.0s
+
+running (8m31.0s), 145/150 VUs, 54457 complete and 2 interrupted iterations
+default   [  95% ] 145/150 VUs  8m31.0s/9m00.0s
+
+running (8m32.0s), 143/150 VUs, 54457 complete and 4 interrupted iterations
+default   [  95% ] 143/150 VUs  8m32.0s/9m00.0s
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:23Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+
+running (8m33.0s), 110/150 VUs, 54523 complete and 6 interrupted iterations
+default   [  95% ] 110/150 VUs  8m33.0s/9m00.0s
+
+running (8m34.0s), 108/150 VUs, 54523 complete and 8 interrupted iterations
+default   [  95% ] 108/150 VUs  8m34.0s/9m00.0s
+
+running (8m35.0s), 107/150 VUs, 54523 complete and 9 interrupted iterations
+default   [  95% ] 107/150 VUs  8m35.0s/9m00.0s
+
+running (8m36.0s), 106/150 VUs, 54523 complete and 10 interrupted iterations
+default   [  96% ] 106/150 VUs  8m36.0s/9m00.0s
+
+running (8m37.0s), 106/150 VUs, 54523 complete and 10 interrupted iterations
+default   [  96% ] 106/150 VUs  8m37.0s/9m00.0s
+time="2026-02-26T05:03:28Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+
+running (8m38.0s), 105/150 VUs, 54524 complete and 10 interrupted iterations
+default   [  96% ] 105/150 VUs  8m38.0s/9m00.0s
+
+running (8m39.0s), 105/150 VUs, 54524 complete and 10 interrupted iterations
+default   [  96% ] 105/150 VUs  8m39.0s/9m00.0s
+
+running (8m40.0s), 105/150 VUs, 54524 complete and 10 interrupted iterations
+default   [  96% ] 105/150 VUs  8m40.0s/9m00.0s
+
+running (8m41.0s), 103/150 VUs, 54524 complete and 12 interrupted iterations
+default   [  96% ] 103/150 VUs  8m41.0s/9m00.0s
+
+running (8m42.0s), 101/150 VUs, 54524 complete and 14 interrupted iterations
+default   [  97% ] 101/150 VUs  8m42.0s/9m00.0s
+
+running (8m43.0s), 098/150 VUs, 54524 complete and 17 interrupted iterations
+default   [  97% ] 098/150 VUs  8m43.0s/9m00.0s
+
+running (8m44.0s), 096/150 VUs, 54524 complete and 19 interrupted iterations
+default   [  97% ] 096/150 VUs  8m44.0s/9m00.0s
+
+running (8m45.0s), 095/150 VUs, 54524 complete and 20 interrupted iterations
+default   [  97% ] 095/150 VUs  8m45.0s/9m00.0s
+
+running (8m46.0s), 093/150 VUs, 54524 complete and 22 interrupted iterations
+default   [  97% ] 093/150 VUs  8m46.0s/9m00.0s
+
+running (8m47.0s), 090/150 VUs, 54524 complete and 25 interrupted iterations
+default   [  98% ] 090/150 VUs  8m47.0s/9m00.0s
+
+running (8m48.0s), 088/150 VUs, 54524 complete and 27 interrupted iterations
+default   [  98% ] 088/150 VUs  8m48.0s/9m00.0s
+
+running (8m49.0s), 085/150 VUs, 54524 complete and 30 interrupted iterations
+default   [  98% ] 085/150 VUs  8m49.0s/9m00.0s
+
+running (8m50.0s), 084/150 VUs, 54524 complete and 31 interrupted iterations
+default   [  98% ] 084/150 VUs  8m50.0s/9m00.0s
+
+running (8m51.0s), 083/150 VUs, 54524 complete and 32 interrupted iterations
+default   [  98% ] 083/150 VUs  8m51.0s/9m00.0s
+
+running (8m52.0s), 083/150 VUs, 54524 complete and 32 interrupted iterations
+default   [  99% ] 083/150 VUs  8m52.0s/9m00.0s
+
+running (8m53.0s), 081/150 VUs, 54524 complete and 34 interrupted iterations
+default   [  99% ] 081/150 VUs  8m53.0s/9m00.0s
+
+running (8m54.0s), 080/150 VUs, 54524 complete and 35 interrupted iterations
+default   [  99% ] 080/150 VUs  8m54.0s/9m00.0s
+
+running (8m55.0s), 078/150 VUs, 54524 complete and 37 interrupted iterations
+default   [  99% ] 078/150 VUs  8m55.0s/9m00.0s
+
+running (8m56.0s), 077/150 VUs, 54524 complete and 38 interrupted iterations
+default   [  99% ] 077/150 VUs  8m56.0s/9m00.0s
+
+running (8m57.0s), 076/150 VUs, 54524 complete and 39 interrupted iterations
+default   [  99% ] 076/150 VUs  8m57.0s/9m00.0s
+
+running (8m58.0s), 074/150 VUs, 54524 complete and 41 interrupted iterations
+default   [ 100% ] 074/150 VUs  8m58.0s/9m00.0s
+
+running (8m59.0s), 074/150 VUs, 54524 complete and 41 interrupted iterations
+default   [ 100% ] 074/150 VUs  8m59.0s/9m00.0s
+
+running (9m00.0s), 072/150 VUs, 54524 complete and 43 interrupted iterations
+default   [ 100% ] 072/150 VUs  9m00.0s/9m00.0s
+
+running (9m01.0s), 070/150 VUs, 54524 complete and 45 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m02.0s), 070/150 VUs, 54524 complete and 45 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources/27/preview\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/rag/workspaces/2/graph?scope=public&include_format_nodes=true\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8000/api/resources/semantic-search\": request timeout"
+time="2026-02-26T05:03:53Z" level=warning msg="Request Failed" error="Get \"http://host.docker.internal:8000/api/resources?all=true&status=approved\": request timeout"
+
+running (9m03.0s), 038/150 VUs, 54554 complete and 47 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m04.0s), 033/150 VUs, 54558 complete and 48 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m05.0s), 032/150 VUs, 54558 complete and 49 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m06.0s), 031/150 VUs, 54558 complete and 50 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m07.0s), 029/150 VUs, 54558 complete and 52 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m08.0s), 027/150 VUs, 54558 complete and 54 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m09.0s), 024/150 VUs, 54558 complete and 57 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m10.0s), 023/150 VUs, 54558 complete and 58 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m11.0s), 022/150 VUs, 54558 complete and 59 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m12.0s), 021/150 VUs, 54558 complete and 60 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m13.0s), 020/150 VUs, 54558 complete and 61 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m14.0s), 020/150 VUs, 54558 complete and 61 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m15.0s), 017/150 VUs, 54558 complete and 64 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m16.0s), 016/150 VUs, 54558 complete and 65 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m17.0s), 013/150 VUs, 54558 complete and 68 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m18.0s), 012/150 VUs, 54558 complete and 69 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m19.0s), 011/150 VUs, 54558 complete and 70 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m20.0s), 010/150 VUs, 54558 complete and 71 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m21.0s), 008/150 VUs, 54558 complete and 73 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m22.0s), 007/150 VUs, 54558 complete and 74 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m23.0s), 006/150 VUs, 54558 complete and 75 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m24.0s), 006/150 VUs, 54558 complete and 75 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m25.0s), 006/150 VUs, 54558 complete and 75 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m26.0s), 006/150 VUs, 54558 complete and 75 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m27.0s), 005/150 VUs, 54558 complete and 76 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m28.0s), 003/150 VUs, 54558 complete and 78 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m29.0s), 002/150 VUs, 54558 complete and 79 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+running (9m30.0s), 001/150 VUs, 54558 complete and 80 interrupted iterations
+default ↓ [ 100% ] 072/150 VUs  9m0s
+
+
+  █ THRESHOLDS 
+
+    http_req_duration
+    ✓ 'p(95)<500' p(95)=433.92ms
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.51%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 54558  95.714807/s
+    checks_succeeded...: 99.48% 54276 out of 54558
+    checks_failed......: 0.51%  282 out of 54558
+
+    ✗ status 200
+      ↳  99% — ✓ 54276 / ✗ 282
+
+    CUSTOM
+    err_all........................: 0.51%  282 out of 54558
+    lat_graph......................: avg=741.843517 med=140.240874 p(90)=434.486301 p(95)=494.602407 p(99)=30014.790191 max=60007.462992
+    lat_list.......................: avg=440.199404 med=68.569405  p(90)=149.959298 p(95)=172.9226   p(99)=277.001294   max=60009.559618
+    lat_preview....................: avg=732.546458 med=119.119333 p(90)=417.348653 p(95)=480.802849 p(99)=29985.35478  max=60001.113549
+    lat_semantic...................: avg=601.206718 med=126.825949 p(90)=423.265427 p(95)=483.48951  p(99)=838.887364   max=60008.958034
+
+    HTTP
+    http_req_duration..............: avg=548.1ms    med=88.01ms    p(90)=308.5ms    p(95)=433.92ms   p(99)=758.55ms     max=1m0s        
+      { expected_response:true }...: avg=249.42ms   med=87.25ms    p(90)=292.15ms   p(95)=423.57ms   p(99)=622.5ms      max=59.98s      
+    http_req_failed................: 0.51%  282 out of 54558
+    http_reqs......................: 54558  95.714807/s
+
+    EXECUTION
+    iteration_duration.............: avg=699.13ms   med=243.06ms   p(90)=467.16ms   p(95)=592.57ms   p(99)=941.65ms     max=1m0s        
+    iterations.....................: 54558  95.714807/s
+    vus............................: 1      min=1            max=150
+    vus_max........................: 150    min=150          max=150
+
+    NETWORK
+    data_received..................: 100 MB 175 kB/s
+    data_sent......................: 17 MB  30 kB/s
+
+
+
+
+running (9m30.0s), 000/150 VUs, 54558 complete and 81 interrupted iterations
+default ✓ [ 100% ] 000/150 VUs  9m0s
