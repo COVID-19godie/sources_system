@@ -20,6 +20,7 @@ from app.core import semantic_ranker
 from app.core.config import settings
 from app.core.file_access_tokens import build_storage_access_urls
 from app.core.html_preview import repair_html_preview
+from app.core.link_content import fetch_link_content, normalize_public_http_url
 from app.core.office_config import build_office_config
 from app.core.office_converter import (
     ensure_legacy_pdf_preview,
@@ -54,6 +55,7 @@ WORD_EXTENSIONS = {".doc", ".docx"}
 EXCEL_EXTENSIONS = {".xls", ".xlsx", ".csv"}
 PPT_EXTENSIONS = {".ppt", ".pptx"}
 PREVIEW_MAX_BYTES = 20 * 1024 * 1024
+GENERAL_CHAPTER_MODE = "general"
 
 
 def parse_tags(raw_tags: str | None) -> list[str]:
@@ -646,6 +648,7 @@ def query_by_filters(
     file_format: str | None,
     difficulty: str | None,
     chapter_id: int | None,
+    chapter_mode: str | None,
     section_id: int | None,
     status_filter: models.ResourceStatus | None,
 ):
@@ -677,7 +680,14 @@ def query_by_filters(
     if section_id:
         query = query.filter(models.Resource.section_id == section_id)
 
-    if chapter_id:
+    normalized_mode = (chapter_mode or "").strip().lower()
+    if normalized_mode == GENERAL_CHAPTER_MODE:
+        linked_ids = select(models.ResourceChapterLink.resource_id)
+        query = query.filter(
+            models.Resource.chapter_id.is_(None),
+            ~models.Resource.id.in_(linked_ids),
+        )
+    elif chapter_id:
         linked_ids = select(models.ResourceChapterLink.resource_id).where(
             models.ResourceChapterLink.chapter_id == chapter_id
         )
@@ -757,6 +767,7 @@ def list_resources(
     file_format: str | None = Query(default=None),
     difficulty: str | None = Query(default=None),
     chapter_id: int | None = Query(default=None),
+    chapter_mode: str = Query(default="normal", pattern="^(normal|general)$"),
     section_id: int | None = Query(default=None),
     status: models.ResourceStatus | None = Query(default=None),
     page: int = Query(default=1, ge=1),
@@ -777,6 +788,7 @@ def list_resources(
         file_format,
         difficulty,
         chapter_id,
+        chapter_mode,
         section_id,
         status,
     )
@@ -955,6 +967,88 @@ def semantic_search(
     )
 
 
+@router.get("/chapter/general/groups", response_model=schemas.ChapterGroupsOut)
+def chapter_general_resources_groups(
+    q: str | None = Query(default=None),
+    file_format: str | None = Query(default=None),
+    difficulty: str | None = Query(default=None),
+    stage: str = Query(default="senior"),
+    subject: str = Query(default="物理"),
+    db: Session = Depends(get_db_read),
+    _: models.User = Depends(get_current_user),
+):
+    query = query_by_filters(
+        db=db,
+        q=q,
+        all_flag=False,
+        payload=None,
+        subject=subject,
+        grade=None,
+        resource_kind=None,
+        file_format=file_format,
+        difficulty=difficulty,
+        chapter_id=None,
+        chapter_mode=GENERAL_CHAPTER_MODE,
+        section_id=None,
+        status_filter=None,
+    )
+    rows = query.order_by(models.Resource.created_at.desc()).all()
+
+    enabled_sections = (
+        db.query(models.ResourceSection)
+        .filter(
+            models.ResourceSection.stage == stage,
+            models.ResourceSection.subject == subject,
+            models.ResourceSection.is_enabled.is_(True),
+        )
+        .order_by(models.ResourceSection.sort_order.asc(), models.ResourceSection.id.asc())
+        .all()
+    )
+    enabled_ids = {row.id for row in enabled_sections}
+    grouped: dict[int, list[schemas.ResourceOut]] = {row.id: [] for row in enabled_sections}
+    unsectioned: list[schemas.ResourceOut] = []
+
+    for row in rows:
+        item = to_resource_out(row)
+        if row.section_id and row.section_id in enabled_ids:
+            grouped[row.section_id].append(item)
+        else:
+            unsectioned.append(item)
+
+    groups: list[schemas.DynamicGroupOut] = []
+    for section in enabled_sections:
+        groups.append(
+            schemas.DynamicGroupOut(
+                section=schemas.ResourceSectionLiteOut(
+                    id=section.id,
+                    code=section.code,
+                    name=section.name,
+                ),
+                items=grouped.get(section.id, []),
+            )
+        )
+    if unsectioned:
+        groups.append(schemas.DynamicGroupOut(section=None, items=unsectioned))
+
+    synthetic_chapter = schemas.ChapterOut(
+        id=0,
+        stage=stage,
+        subject=subject,
+        grade="通用",
+        textbook="系统",
+        volume_code="general",
+        volume_name="通用",
+        volume_order=999,
+        chapter_order=999,
+        chapter_code="0.0",
+        chapter_keywords=[],
+        title="通用",
+        is_enabled=True,
+        updated_at=datetime.now(timezone.utc),
+    )
+    return schemas.ChapterGroupsOut(chapter=synthetic_chapter, groups=groups)
+
+
 @router.get("/chapter/{chapter_id}/groups", response_model=schemas.ChapterGroupsOut)
 def chapter_resources_groups(
     chapter_id: int,
@@ -979,6 +1073,7 @@ def chapter_resources_groups(
         file_format=file_format,
         difficulty=difficulty,
         chapter_id=chapter_id,
+        chapter_mode="normal",
         section_id=None,
         status_filter=None,
     )
@@ -1137,12 +1232,18 @@ def _validate_external_url(raw_url: str) -> str:
     if not value:
         raise HTTPException(status_code=400, detail="external_url is required")
     try:
-        parsed = urlparse(value)
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail="Invalid external_url") from error
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise HTTPException(status_code=400, detail="external_url must be http/https")
-    return value
+        return normalize_public_http_url(value)
+    except HTTPException as error:
+        detail = str(error.detail or "Invalid external_url")
+        raise HTTPException(status_code=400, detail=detail.replace("url", "external_url", 1)) from error
+
+
+def _safe_fetch_link_content(url: str) -> tuple[str, str, str]:
+    try:
+        parsed = fetch_link_content(url)
+    except HTTPException:
+        return "", "", ""
+    return parsed.title or "", parsed.description or "", parsed.content_text or ""
 
 
 @router.post("/auto-classify", response_model=schemas.AutoClassifyResponse)
@@ -1165,16 +1266,24 @@ def auto_classify_resource(
         normalized_url = _validate_external_url(normalized_url)
     file_format = detect_file_format(file.filename if file else None)
     preview_text = _read_upload_preview_text(file, file_format)
+    link_title = ""
+    link_description = ""
+    link_text = ""
+    if normalized_url:
+        link_title, link_description, link_text = _safe_fetch_link_content(normalized_url)
+    merged_title = title.strip() or link_title
+    merged_description = description.strip() or link_description
+    merged_content = "\n".join(item for item in [preview_text, link_text] if item).strip()
     result = chapter_classifier.classify_chapter(
         db,
         stage=stage.strip() or "senior",
         subject=subject.strip() or "物理",
-        title=title.strip(),
-        description=description.strip(),
+        title=merged_title,
+        description=merged_description,
         tags=parsed_tags,
         filename=file.filename if file else "",
         external_url=normalized_url,
-        content_text=preview_text,
+        content_text=merged_content,
         volume_code=selected_volume_code.strip() or volume_code.strip() or None,
         top_k=3,
     )
@@ -1227,6 +1336,7 @@ def create_resource(
     resource_kind: str = Form(default="tutorial"),
     difficulty: str = Form(default=""),
     chapter_id: int | None = Form(default=None),
+    chapter_mode: str = Form(default="normal"),
     section_id: int | None = Form(default=None),
     volume_code: str = Form(default=""),
     external_url: str = Form(default=""),
@@ -1235,18 +1345,34 @@ def create_resource(
     current_user: models.User = Depends(get_current_user),
 ):
     parsed_tags = parse_tags(tags)
+    normalized_chapter_mode = (chapter_mode or "normal").strip().lower()
+    if normalized_chapter_mode not in {"normal", GENERAL_CHAPTER_MODE}:
+        raise HTTPException(status_code=400, detail="Invalid chapter_mode")
     normalized_url = external_url.strip()
     if normalized_url:
         normalized_url = _validate_external_url(normalized_url)
     if not file and not normalized_url:
         raise HTTPException(status_code=400, detail="必须上传文件或提供外部链接")
+    if normalized_chapter_mode == GENERAL_CHAPTER_MODE and chapter_id is not None:
+        raise HTTPException(status_code=400, detail="chapter_mode=general 时不允许传 chapter_id")
 
     inferred_filename = ""
     if normalized_url:
         inferred_filename = Path(urlparse(normalized_url).path).name
     file_format = detect_file_format(file.filename if file else inferred_filename or None)
+    link_title = ""
+    link_description = ""
+    link_text = ""
+    if normalized_url:
+        link_title, link_description, link_text = _safe_fetch_link_content(normalized_url)
+    merged_title = title.strip() or link_title
+    merged_description = description.strip() or link_description
+    merged_content = "\n".join(
+        item for item in [_read_upload_preview_text(file, file_format), link_text] if item
+    ).strip()
+
     chapter = None
-    resolved_volume_code = volume_code.strip() or None
+    resolved_volume_code = "general" if normalized_chapter_mode == GENERAL_CHAPTER_MODE else (volume_code.strip() or None)
     if chapter_id is not None:
         chapter = db.query(models.Chapter).filter(models.Chapter.id == chapter_id).first()
         if not chapter:
@@ -1269,17 +1395,17 @@ def create_resource(
     )
 
     auto_result: chapter_classifier.ChapterClassification | None = None
-    if chapter is None:
+    if chapter is None and normalized_chapter_mode != GENERAL_CHAPTER_MODE:
         auto_result = chapter_classifier.classify_chapter(
             db,
             stage=stage,
             subject=resolved_subject,
-            title=title.strip(),
-            description=description.strip(),
+            title=merged_title,
+            description=merged_description,
             tags=parsed_tags,
             filename=file.filename if file else "",
             external_url=normalized_url,
-            content_text=_read_upload_preview_text(file, file_format),
+            content_text=merged_content,
             volume_code=resolved_volume_code,
             top_k=3,
         )
@@ -1292,23 +1418,25 @@ def create_resource(
         else:
             resolved_volume_code = resolved_volume_code or auto_result.volume_code
 
-    if stage == "senior" and resolved_subject == "物理" and chapter is None:
+    if stage == "senior" and resolved_subject == "物理" and chapter is None and normalized_chapter_mode != GENERAL_CHAPTER_MODE:
         raise HTTPException(status_code=400, detail="高中物理资源必须先选择人教版目录章节")
+    if normalized_chapter_mode == GENERAL_CHAPTER_MODE:
+        resolved_volume_code = "general"
 
     resolved_title, clean_base_name, title_auto_generated = compose_resource_name(
-        raw_title=title,
+        raw_title=merged_title,
         chapter=chapter,
         section=section,
-        filename=file.filename if file else None,
+        filename=file.filename if file else inferred_filename or None,
         tags=parsed_tags,
-        description=description,
+        description=merged_description,
         volume_code_override=resolved_volume_code,
     )
 
     object_key = None
     storage_provider = models.StorageProvider.local
     file_path = None
-    source_filename = file.filename if file and file.filename else None
+    source_filename = file.filename if file and file.filename else (inferred_filename or None)
 
     if file and file.filename:
         try:
@@ -1333,7 +1461,7 @@ def create_resource(
 
     resource = models.Resource(
         title=resolved_title,
-        description=description.strip() or None,
+        description=merged_description or None,
         type=type.strip(),
         subject=resolved_subject or None,
         grade=resolved_grade or None,
@@ -1362,7 +1490,7 @@ def create_resource(
         resource_variants.ensure_resource_origin_variant(db, resource)
         db.commit()
 
-    if chapter:
+    if chapter and normalized_chapter_mode != GENERAL_CHAPTER_MODE:
         link = models.ResourceChapterLink(resource_id=resource.id, chapter_id=chapter.id)
         db.add(link)
         db.commit()

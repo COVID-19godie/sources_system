@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import TagPicker from "./TagPicker";
 import { autoClassifyResource, getUploadPathPreview } from "../lib/api";
+import { GENERAL_CHAPTER_LABEL, GENERAL_CHAPTER_VALUE, isGeneralChapterValue, toChapterMode } from "../lib/chapterOptions";
 
 function todayDateCode() {
   const now = new Date();
@@ -126,6 +127,10 @@ export default function UploadWizard({
   const selectedChapter = useMemo(
     () => chapters.find((item) => String(item.id) === form.chapter_id) || null,
     [chapters, form.chapter_id]
+  );
+  const isGeneralChapterSelected = useMemo(
+    () => isGeneralChapterValue(form.chapter_id),
+    [form.chapter_id]
   );
   const selectedSection = useMemo(
     () => sections.find((item) => String(item.id) === form.section_id) || null,
@@ -257,9 +262,9 @@ export default function UploadWizard({
         const data = await getUploadPathPreview({
           token,
           filename: sourceName,
-          chapterId: form.chapter_id,
+          chapterId: isGeneralChapterSelected ? "" : form.chapter_id,
           sectionId: form.section_id,
-          volumeCode: form.volume_code,
+          volumeCode: isGeneralChapterSelected ? "general" : form.volume_code,
           lowConfidence: Boolean((scopedAutoResult || autoResult)?.is_low_confidence && !form.chapter_id)
         });
         setPathPreview(data?.object_key || "");
@@ -279,7 +284,19 @@ export default function UploadWizard({
     }
 
     loadPathPreview();
-  }, [token, uploadFile, externalUrl, form.chapter_id, form.section_id, form.volume_code, autoResult, scopedAutoResult, selectedChapter, selectedSection]);
+  }, [
+    token,
+    uploadFile,
+    externalUrl,
+    form.chapter_id,
+    form.section_id,
+    form.volume_code,
+    autoResult,
+    scopedAutoResult,
+    selectedChapter,
+    selectedSection,
+    isGeneralChapterSelected
+  ]);
 
   function resetWizard() {
     setStep(1);
@@ -337,8 +354,8 @@ export default function UploadWizard({
       }
       setForm((prev) => ({
         ...prev,
-        chapter_id: "",
-        volume_code: "",
+        chapter_id: url && (!data || data?.is_low_confidence) ? GENERAL_CHAPTER_VALUE : "",
+        volume_code: url && (!data || data?.is_low_confidence) ? "general" : "",
         section_id: ""
       }));
       setAutoFilledChapter(false);
@@ -356,6 +373,14 @@ export default function UploadWizard({
       setAutoFilledChapter(false);
       setIsScopedClassifying(false);
       setDisplaySource(lastGoodResultRef.current ? "fallback" : "global");
+      if (url) {
+        setForm((prev) => ({
+          ...prev,
+          chapter_id: GENERAL_CHAPTER_VALUE,
+          volume_code: "general",
+          section_id: ""
+        }));
+      }
       setClassifyError(lastGoodResultRef.current ? "全局判章失败，已展示最近一次有效推荐" : (error?.message || "全局判章失败，请重试"));
     } finally {
       if (requestId === globalReqSeqRef.current) {
@@ -366,7 +391,7 @@ export default function UploadWizard({
 
   useEffect(() => {
     async function runScopedClassify() {
-      if (!token || (!uploadFile && !externalUrl.trim()) || !form.volume_code) {
+      if (!token || (!uploadFile && !externalUrl.trim()) || !form.volume_code || isGeneralChapterValue(form.chapter_id)) {
         setScopedAutoResult(null);
         setIsScopedClassifying(false);
         return;
@@ -396,6 +421,16 @@ export default function UploadWizard({
         if (!data) {
           setClassifyError(lastGoodResultRef.current ? "册内重算无结果，已展示最近一次有效推荐" : "册内重算未返回有效结果，请重试");
         }
+        if (externalUrl.trim() && data?.is_low_confidence) {
+          setForm((prev) => ({
+            ...prev,
+            chapter_id: GENERAL_CHAPTER_VALUE,
+            volume_code: "general",
+            section_id: ""
+          }));
+          setAutoFilledChapter(false);
+          return;
+        }
         if (data?.recommended_chapter_id) {
           setForm((prev) => {
             if (prev.chapter_id) {
@@ -415,6 +450,14 @@ export default function UploadWizard({
         }
         setScopedAutoResult(null);
         setDisplaySource(lastGoodResultRef.current ? "fallback" : "global");
+        if (externalUrl.trim()) {
+          setForm((prev) => ({
+            ...prev,
+            chapter_id: GENERAL_CHAPTER_VALUE,
+            volume_code: "general",
+            section_id: ""
+          }));
+        }
         setClassifyError("册内重算失败，已展示最近一次有效推荐");
       } finally {
         if (requestId === scopedReqSeqRef.current) {
@@ -423,7 +466,7 @@ export default function UploadWizard({
       }
     }
     runScopedClassify();
-  }, [token, uploadFile, externalUrl, form.volume_code]);
+  }, [token, uploadFile, externalUrl, form.volume_code, form.chapter_id]);
 
   function onFileSelect(file) {
     if (!file) {
@@ -473,7 +516,7 @@ export default function UploadWizard({
         setGlobalMessage("请先选择上传文件或输入资源链接");
         return;
       }
-      if (!form.volume_code) {
+      if (!form.volume_code && !isGeneralChapterSelected) {
         setGlobalMessage("请先选择册");
         return;
       }
@@ -512,13 +555,14 @@ export default function UploadWizard({
       type: form.type,
       description: form.description,
       subject: "物理",
-      grade: selectedChapter?.grade || "",
+      grade: isGeneralChapterSelected ? "" : (selectedChapter?.grade || ""),
       tags: form.tags.join(","),
       section_id: form.section_id,
       resource_kind: selectedSection?.code || "tutorial",
       difficulty: form.difficulty,
-      chapter_id: form.chapter_id || "",
-      volume_code: form.volume_code || selectedChapter?.volume_code || "",
+      chapter_mode: toChapterMode(form.chapter_id),
+      chapter_id: isGeneralChapterSelected ? "" : (form.chapter_id || ""),
+      volume_code: isGeneralChapterSelected ? "general" : (form.volume_code || selectedChapter?.volume_code || ""),
       external_url: externalUrl.trim(),
       file: uploadFile
     });
@@ -654,6 +698,26 @@ export default function UploadWizard({
               <strong>AI 归档三步（选择题）</strong>
               <div className="hint">高中物理资源归档严格按人教版2019目录执行，必须选择“册/章/节”。</div>
               <div className="ai-guide-step">
+                <div className="hint">快捷：不限定章节可直接选择“通用”</div>
+                <div className="chip-group">
+                  <button
+                    type="button"
+                    className={`chip ${isGeneralChapterSelected ? "active" : ""}`}
+                    onClick={() => {
+                      setAutoFilledChapter(false);
+                      setForm((prev) => ({
+                        ...prev,
+                        volume_code: "general",
+                        chapter_id: GENERAL_CHAPTER_VALUE,
+                        section_id: ""
+                      }));
+                    }}
+                  >
+                    {GENERAL_CHAPTER_LABEL}
+                  </button>
+                </div>
+              </div>
+              <div className="ai-guide-step">
                 <div className="hint">第1问：请选择册</div>
                 <div className="chip-group">
                   {guidedVolumeOptions.map((item) => (
@@ -729,9 +793,9 @@ export default function UploadWizard({
               <div className="hint">
                 当前选择：
                 {" 册 "}
-                {selectedChapter?.volume_name || selectedVolume?.volume_name || "未选"}
+                {isGeneralChapterSelected ? GENERAL_CHAPTER_LABEL : (selectedChapter?.volume_name || selectedVolume?.volume_name || "未选")}
                 {" / 章 "}
-                {selectedChapter ? `${selectedChapter.chapter_code} ${selectedChapter.title}` : "未选"}
+                {isGeneralChapterSelected ? GENERAL_CHAPTER_LABEL : (selectedChapter ? `${selectedChapter.chapter_code} ${selectedChapter.title}` : "未选")}
                 {" / 节 "}
                 {selectedSection?.name || "未选"}
               </div>
@@ -773,9 +837,9 @@ export default function UploadWizard({
             </label>
 
             <div className="hint">
-              学段：高中（固定） / 学科：物理（固定） / 册：{selectedChapter?.volume_name || selectedVolume?.volume_name || "未识别"}
+              学段：高中（固定） / 学科：物理（固定） / 册：{isGeneralChapterSelected ? GENERAL_CHAPTER_LABEL : (selectedChapter?.volume_name || selectedVolume?.volume_name || "未识别")}
               {" / "}
-              年级：{selectedChapter?.grade || "未选择章节"}
+              年级：{isGeneralChapterSelected ? GENERAL_CHAPTER_LABEL : (selectedChapter?.grade || "未选择章节")}
               {" / "}
               板块：{selectedSection?.name || "未选择"}
             </div>
@@ -816,8 +880,8 @@ export default function UploadWizard({
         {step === 3 && (
           <div className="wizard-preview">
             <p><strong>文件：</strong>{uploadFile?.name || "-"}</p>
-            <p><strong>册：</strong>{selectedChapter?.volume_name || selectedVolume?.volume_name || "-"}</p>
-            <p><strong>章节：</strong>{selectedChapter ? `${selectedChapter.chapter_code} ${selectedChapter.title}` : "未选择"}</p>
+            <p><strong>册：</strong>{isGeneralChapterSelected ? GENERAL_CHAPTER_LABEL : (selectedChapter?.volume_name || selectedVolume?.volume_name || "-")}</p>
+            <p><strong>章节：</strong>{isGeneralChapterSelected ? GENERAL_CHAPTER_LABEL : (selectedChapter ? `${selectedChapter.chapter_code} ${selectedChapter.title}` : "未选择")}</p>
             <p><strong>板块：</strong>{selectedSection?.name || "-"}</p>
             <p><strong>预计存储路径：</strong>{pathPreview || "resources/unassigned/<uuid>"}</p>
             <p><strong>类型：</strong>{typeLabel(form.type)}</p>

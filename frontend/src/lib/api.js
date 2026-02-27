@@ -236,6 +236,7 @@ export async function listAdminResources(options = {}) {
     q = "",
     status = "",
     chapterId = "",
+    chapterMode = "",
     sectionId = "",
     subject = "",
     grade = "",
@@ -255,6 +256,9 @@ export async function listAdminResources(options = {}) {
   }
   if (chapterId) {
     params.set("chapter_id", String(chapterId));
+  }
+  if (chapterMode) {
+    params.set("chapter_mode", String(chapterMode));
   }
   if (sectionId) {
     params.set("section_id", String(sectionId));
@@ -348,10 +352,53 @@ export async function listIngestJobs(options = {}) {
   return apiRequest(`/api/ingest/jobs?${params.toString()}`, { token });
 }
 
+export async function listIngestDocuments(options = {}) {
+  const {
+    token = "",
+    status = "",
+    chapterId = "",
+    chapterMode = "",
+    q = "",
+    limit = 200
+  } = options;
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  if (status.trim()) {
+    params.set("status", status.trim());
+  }
+  if (chapterId) {
+    params.set("chapter_id", String(chapterId));
+  }
+  if (chapterMode) {
+    params.set("chapter_mode", String(chapterMode));
+  }
+  if (q.trim()) {
+    params.set("q", q.trim());
+  }
+  return apiRequest(`/api/ingest/documents?${params.toString()}`, { token });
+}
+
+export async function semanticSearchIngestDocuments(payload, token) {
+  return apiRequest("/api/ingest/documents/semantic-search", {
+    method: "POST",
+    token,
+    body: payload
+  });
+}
+
+export async function startIngestBackfill(payload, token) {
+  return apiRequest("/api/ingest/documents/backfill", {
+    method: "POST",
+    token,
+    body: payload
+  });
+}
+
 export async function listKnowledgePoints(options = {}) {
   const {
     token = "",
     chapterId = "",
+    chapterMode = "",
     volumeCode = "",
     q = "",
     status = "",
@@ -361,6 +408,9 @@ export async function listKnowledgePoints(options = {}) {
   params.set("limit", String(limit));
   if (chapterId) {
     params.set("chapter_id", String(chapterId));
+  }
+  if (chapterMode) {
+    params.set("chapter_mode", String(chapterMode));
   }
   if (volumeCode) {
     params.set("volume_code", String(volumeCode));

@@ -460,6 +460,12 @@ class SourceDocumentOut(BaseModel):
     object_key: str | None
     title: str
     summary: str | None
+    content_chars: int = 0
+    content_truncated: bool = False
+    content_hash: str | None = None
+    content_indexed_at: datetime | None = None
+    parse_error: str | None = None
+    content_excerpt: str | None = None
     tags: list[str] = Field(default_factory=list)
     fingerprint: str
     stage: str
@@ -497,6 +503,48 @@ class IngestSubmitOut(BaseModel):
 
 class SourceDocumentStatusRequest(BaseModel):
     status: Literal["ready", "published", "hidden", "failed", "pending_review"]
+
+
+class IngestSemanticSearchRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=300)
+    stage: str = "senior"
+    subject: str = "物理"
+    top_k: int = Field(default=20, ge=1, le=50)
+    candidate_limit: int = Field(default=300, ge=20, le=2000)
+
+
+class IngestSemanticFactorsOut(BaseModel):
+    vector: float
+    summary: float
+    content: float
+    tags: float
+    raw: float
+
+
+class IngestSemanticSearchItemOut(BaseModel):
+    score: float
+    probability: float
+    factors: IngestSemanticFactorsOut
+    document: SourceDocumentOut
+
+
+class IngestSemanticSearchResponse(BaseModel):
+    query: str
+    threshold: float = 0.02
+    returned_count: int = 0
+    results: list[IngestSemanticSearchItemOut] = Field(default_factory=list)
+
+
+class IngestBackfillRequest(BaseModel):
+    stage: str = "senior"
+    subject: str = "物理"
+    limit: int = Field(default=120, ge=1, le=1000)
+    reparse: bool = False
+    reembed: bool = False
+
+
+class IngestBackfillOut(BaseModel):
+    job: IngestJobOut
 
 
 class KnowledgePointCreateRequest(BaseModel):

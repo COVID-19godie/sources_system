@@ -3,6 +3,7 @@ import QuickSuggestionChips from "../components/QuickSuggestionChips";
 import ResourceCard from "../components/ResourceCard";
 import ResourceDetailModal from "../components/ResourceDetailModal";
 import { apiRequest, fetchUploadOptions, semanticSearchResources } from "../lib/api";
+import { GENERAL_CHAPTER_VALUE, withGeneralChapterOption } from "../lib/chapterOptions";
 
 const FILE_FORMATS = [
   { key: "all", label: "全部格式" },
@@ -59,14 +60,15 @@ export default function DiscoverPage({ token, role, searchKeyword, onLogin, setG
           stage: "senior",
           subject: "物理"
         });
-        const chapterItems = data?.chapters || [];
+        const chapterItems = withGeneralChapterOption(data?.chapters || []);
         setChapters(chapterItems);
         setSections(data?.sections || []);
         setTags(data?.tags || []);
         setQuickQueries(data?.quick_queries || []);
         setDifficulties(data?.difficulties?.length ? data.difficulties : ["基础", "进阶", "挑战"]);
         if (chapterItems.length && !activeChapterId) {
-          setActiveChapterId(chapterItems[0].id);
+          const firstNormal = chapterItems.find((item) => String(item.id) !== GENERAL_CHAPTER_VALUE);
+          setActiveChapterId(firstNormal?.id || chapterItems[0].id);
         }
       } catch (error) {
         setGlobalMessage(error.message);
@@ -102,7 +104,11 @@ export default function DiscoverPage({ token, role, searchKeyword, onLogin, setG
         }
 
         const query = params.toString() ? `?${params.toString()}` : "";
-        const data = await apiRequest(`/api/resources/chapter/${activeChapterId}/groups${query}`, { token });
+        const isGeneralChapter = String(activeChapterId) === GENERAL_CHAPTER_VALUE;
+        const endpoint = isGeneralChapter
+          ? `/api/resources/chapter/general/groups${query}`
+          : `/api/resources/chapter/${activeChapterId}/groups${query}`;
+        const data = await apiRequest(endpoint, { token });
         setGroupData(data?.groups || []);
       } catch (error) {
         setGlobalMessage(error.message);
@@ -246,7 +252,7 @@ export default function DiscoverPage({ token, role, searchKeyword, onLogin, setG
                   onClick={() => setActiveChapterId(chapter.id)}
                 >
                   <span>{chapter.grade}</span>
-                  <strong>{chapter.chapter_code} {chapter.title}</strong>
+                  <strong>{String(chapter.id) === GENERAL_CHAPTER_VALUE ? chapter.title : `${chapter.chapter_code} ${chapter.title}`}</strong>
                 </button>
               ))}
             </div>

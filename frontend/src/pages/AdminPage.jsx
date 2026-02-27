@@ -9,6 +9,7 @@ import {
   createTag,
   fetchTags,
   formatTime,
+  listIngestDocuments,
   listIngestJobs,
   listAdminResources,
   listKnowledgePoints,
@@ -19,12 +20,15 @@ import {
   reconcileStorage,
   reorderTags,
   restoreTrashItem,
+  semanticSearchIngestDocuments,
+  startIngestBackfill,
   submitIngestUrl,
   setResourceVisibility,
   updateKnowledgePoint,
   updateResourceTags,
   updateTag
 } from "../lib/api";
+import { GENERAL_CHAPTER_LABEL, GENERAL_CHAPTER_VALUE, isGeneralChapterValue, toChapterMode, withGeneralChapterOption } from "../lib/chapterOptions";
 
 const STAGE = "senior";
 const SUBJECT = "物理";
@@ -184,6 +188,12 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
     status: "all"
   });
   const [ingestForm, setIngestForm] = useState({ url: "", title: "" });
+  const [ingestDocFilters, setIngestDocFilters] = useState({ q: "", chapterId: "" });
+  const [ingestDocuments, setIngestDocuments] = useState([]);
+  const [ingestSemanticQuery, setIngestSemanticQuery] = useState("");
+  const [ingestSemanticLoading, setIngestSemanticLoading] = useState(false);
+  const [ingestSemanticResults, setIngestSemanticResults] = useState([]);
+  const [ingestBackfillLoading, setIngestBackfillLoading] = useState(false);
   const [knowledgeForm, setKnowledgeForm] = useState({
     chapter_id: "",
     kp_code: "",
@@ -251,6 +261,7 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
     return Array.from(grouped.values()).sort((a, b) => (a.order - b.order) || a.code.localeCompare(b.code, "zh-CN"));
   }, [chapters]);
   const strictCatalog = Boolean(catalogAudit?.strict_enabled);
+  const chaptersWithGeneral = useMemo(() => withGeneralChapterOption(chapters), [chapters]);
 
   async function loadAll() {
     if (!token || role !== "admin") {
@@ -264,14 +275,15 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
     }
 
     try {
-      const [pendingData, chapterData, sectionData, tagData, auditData, kpData, ingestData] = await Promise.all([
+      const [pendingData, chapterData, sectionData, tagData, auditData, kpData, ingestData, ingestDocData] = await Promise.all([
         apiRequest("/api/resources/pending", { token }),
         apiRequest(`/api/chapters?stage=${STAGE}&subject=${encodeURIComponent(SUBJECT)}`, { token }),
         apiRequest(`/api/sections?stage=${STAGE}&subject=${encodeURIComponent(SUBJECT)}`, { token }),
         fetchTags({ token, stage: STAGE, subject: SUBJECT }),
         apiRequest(`/api/chapters/catalog-audit?stage=${STAGE}&subject=${encodeURIComponent(SUBJECT)}`, { token }),
         listKnowledgePoints({ token, limit: 500 }),
-        listIngestJobs({ token, limit: 30 })
+        listIngestJobs({ token, limit: 30 }),
+        listIngestDocuments({ token, limit: 120 })
       ]);
       setPendingItems(pendingData || []);
       setChapters(chapterData || []);
@@ -280,6 +292,7 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
       setCatalogAudit(auditData || null);
       setKnowledgePoints(kpData || []);
       setIngestJobs(ingestData || []);
+      setIngestDocuments(ingestDocData || []);
       await loadManagedResources();
     } catch (error) {
       setGlobalMessage(error.message);
@@ -296,7 +309,8 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
         token,
         q: resourceFilters.q,
         status: resourceFilters.status === "all" ? "" : resourceFilters.status,
-        chapterId: resourceFilters.chapterId,
+        chapterId: isGeneralChapterValue(resourceFilters.chapterId) ? "" : resourceFilters.chapterId,
+        chapterMode: toChapterMode(resourceFilters.chapterId),
         sectionId: resourceFilters.sectionId,
         subject: SUBJECT
       });
@@ -318,18 +332,27 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
       return;
     }
     try {
-      const [kpData, ingestData] = await Promise.all([
+      const [kpData, ingestData, ingestDocData] = await Promise.all([
         listKnowledgePoints({
           token,
-          chapterId: knowledgeFilters.chapterId,
+          chapterId: isGeneralChapterValue(knowledgeFilters.chapterId) ? "" : knowledgeFilters.chapterId,
+          chapterMode: toChapterMode(knowledgeFilters.chapterId),
           q: knowledgeFilters.q,
           status: knowledgeFilters.status === "all" ? "" : knowledgeFilters.status,
           limit: 600
         }),
-        listIngestJobs({ token, limit: 50 })
+        listIngestJobs({ token, limit: 50 }),
+        listIngestDocuments({
+          token,
+          q: ingestDocFilters.q,
+          chapterId: isGeneralChapterValue(ingestDocFilters.chapterId) ? "" : ingestDocFilters.chapterId,
+          chapterMode: toChapterMode(ingestDocFilters.chapterId),
+          limit: 200
+        })
       ]);
       setKnowledgePoints(kpData || []);
       setIngestJobs(ingestData || []);
+      setIngestDocuments(ingestDocData || []);
     } catch (error) {
       setGlobalMessage(error.message);
     }
@@ -358,9 +381,61 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
     }
   }
 
+  async function handleSemanticSearchIngest() {
+    const query = ingestSemanticQuery.trim();
+    if (!query) {
+      setGlobalMessage("请输入来源语义检索问题");
+      return;
+    }
+    try {
+      setIngestSemanticLoading(true);
+      const data = await semanticSearchIngestDocuments(
+        {
+          query,
+          stage: STAGE,
+          subject: SUBJECT,
+          top_k: 20,
+          candidate_limit: 320
+        },
+        token
+      );
+      setIngestSemanticResults(data?.results || []);
+    } catch (error) {
+      setGlobalMessage(error.message);
+    } finally {
+      setIngestSemanticLoading(false);
+    }
+  }
+
+  async function handleBackfillIngest() {
+    try {
+      setIngestBackfillLoading(true);
+      const data = await startIngestBackfill(
+        {
+          stage: STAGE,
+          subject: SUBJECT,
+          limit: 120,
+          reparse: false,
+          reembed: false
+        },
+        token
+      );
+      setGlobalMessage(`补算任务已提交 #${data?.job?.id || "-"}`);
+      await loadKnowledgeData();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    } finally {
+      setIngestBackfillLoading(false);
+    }
+  }
+
   async function handleCreateKnowledgePoint() {
     if (!knowledgeForm.chapter_id || !knowledgeForm.kp_code.trim() || !knowledgeForm.name.trim()) {
       setGlobalMessage("请填写章节、知识点编号和名称");
+      return;
+    }
+    if (isGeneralChapterValue(knowledgeForm.chapter_id)) {
+      setGlobalMessage("知识点必须绑定真实章节，不能使用通用章节");
       return;
     }
     try {
@@ -493,7 +568,16 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
     }
     loadKnowledgeData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, role, activeTab, knowledgeFilters.chapterId, knowledgeFilters.q, knowledgeFilters.status]);
+  }, [
+    token,
+    role,
+    activeTab,
+    knowledgeFilters.chapterId,
+    knowledgeFilters.q,
+    knowledgeFilters.status,
+    ingestDocFilters.chapterId,
+    ingestDocFilters.q
+  ]);
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -998,6 +1082,12 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
       return String(a.kp_code || "").localeCompare(String(b.kp_code || ""), "zh-CN");
     });
   }, [knowledgePoints]);
+  const visibleIngestDocuments = useMemo(() => {
+    if (isGeneralChapterValue(ingestDocFilters.chapterId)) {
+      return (ingestDocuments || []).filter((item) => !item.chapter_id);
+    }
+    return ingestDocuments || [];
+  }, [ingestDocuments, ingestDocFilters.chapterId]);
 
   const statusLabel = {
     pending: "待审核",
@@ -1005,6 +1095,19 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
     rejected: "驳回",
     hidden: "不公开"
   };
+
+  function renderResourceChapterLabel(item) {
+    if (item?.chapter_id) {
+      return chapterMap[item.chapter_id] || item.chapter_id;
+    }
+    const links = Array.isArray(item?.chapter_ids) ? item.chapter_ids : [];
+    if (links.length) {
+      return links
+        .map((chapterId) => chapterMap[chapterId] || chapterId)
+        .join(" / ");
+    }
+    return GENERAL_CHAPTER_LABEL;
+  }
 
   if (!token) {
     return (
@@ -1092,7 +1195,7 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
               onChange={(event) => setResourceFilters((prev) => ({ ...prev, chapterId: event.target.value }))}
             >
               <option value="">全部章节</option>
-              {chapters.map((chapter) => (
+              {chaptersWithGeneral.map((chapter) => (
                 <option key={chapter.id} value={chapter.id}>
                   {chapter.chapter_code} {chapter.title}
                 </option>
@@ -1171,7 +1274,7 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
                     <td>{item.title}</td>
                     <td>{statusLabel[item.status] || item.status}</td>
                     <td>
-                      <div>{chapterMap[item.chapter_id] || "-"}</div>
+                      <div>{renderResourceChapterLabel(item)}</div>
                       <div className="hint">{sectionMap[item.section_id] || "-"}</div>
                     </td>
                     <td>{item.author_id}</td>
@@ -1426,6 +1529,9 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
                 onChange={(event) => setIngestForm((prev) => ({ ...prev, title: event.target.value }))}
               />
               <button type="button" onClick={handleSubmitIngest}>提交采集</button>
+              <button type="button" className="ghost" onClick={handleBackfillIngest} disabled={ingestBackfillLoading}>
+                {ingestBackfillLoading ? "补算中..." : "历史补算"}
+              </button>
             </div>
             {!ingestJobs.length ? (
               <p className="hint">暂无采集任务</p>
@@ -1455,6 +1561,98 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
                 </tbody>
               </table>
             )}
+
+            <div className="action-buttons" style={{ marginTop: 12 }}>
+              <input
+                type="text"
+                placeholder="来源文档搜索（标题/摘要/正文）"
+                value={ingestDocFilters.q}
+                onChange={(event) => setIngestDocFilters((prev) => ({ ...prev, q: event.target.value }))}
+              />
+              <select
+                value={ingestDocFilters.chapterId}
+                onChange={(event) => setIngestDocFilters((prev) => ({ ...prev, chapterId: event.target.value }))}
+              >
+                <option value="">全部章节</option>
+                {chaptersWithGeneral.map((chapter) => (
+                  <option key={`ingest-doc-chapter-${chapter.id}`} value={chapter.id}>
+                    {chapter.chapter_code} {chapter.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {!visibleIngestDocuments.length ? (
+              <p className="hint">暂无来源文档</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>章节</th>
+                    <th>正文长度</th>
+                    <th>索引状态</th>
+                    <th>解析状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleIngestDocuments.map((item) => (
+                    <tr key={`source-doc-${item.id}`}>
+                      <td>{item.id}</td>
+                      <td>
+                        <div>{item.title || "-"}</div>
+                        <div className="hint">{item.url || "-"}</div>
+                        {item.content_excerpt ? <div className="hint">{item.content_excerpt}</div> : null}
+                      </td>
+                      <td>{item.chapter_id ? (chapterMap[item.chapter_id] || item.chapter_id) : GENERAL_CHAPTER_LABEL}</td>
+                      <td>{item.content_chars || 0}{item.content_truncated ? "（截断）" : ""}</td>
+                      <td>{item.content_indexed_at ? `已索引 ${formatTime(item.content_indexed_at)}` : "未索引"}</td>
+                      <td>{item.parse_error || "正常"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            <div className="action-buttons" style={{ marginTop: 12 }}>
+              <input
+                type="text"
+                placeholder="来源语义搜索（例如：楞次定律实验原理）"
+                value={ingestSemanticQuery}
+                onChange={(event) => setIngestSemanticQuery(event.target.value)}
+              />
+              <button type="button" onClick={handleSemanticSearchIngest} disabled={ingestSemanticLoading}>
+                {ingestSemanticLoading ? "检索中..." : "来源语义搜索"}
+              </button>
+            </div>
+            {ingestSemanticResults.length ? (
+              <table>
+                <thead>
+                  <tr>
+                    <th>概率</th>
+                    <th>来源文档</th>
+                    <th>章节</th>
+                    <th>片段</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ingestSemanticResults.map((item, index) => {
+                    const doc = item.document;
+                    return (
+                      <tr key={`semantic-doc-${doc?.id || index}`}>
+                        <td>{((item.probability || item.score || 0) * 100).toFixed(1)}%</td>
+                        <td>
+                          <div>{doc?.title || "-"}</div>
+                          <div className="hint">{doc?.url || "-"}</div>
+                        </td>
+                        <td>{doc?.chapter_id ? (chapterMap[doc.chapter_id] || doc.chapter_id) : GENERAL_CHAPTER_LABEL}</td>
+                        <td>{doc?.content_excerpt || doc?.summary || "-"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : null}
           </section>
 
           <section className="card">
@@ -1465,7 +1663,7 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
                 onChange={(event) => setKnowledgeFilters((prev) => ({ ...prev, chapterId: event.target.value }))}
               >
                 <option value="">全部章节</option>
-                {chapters.map((chapter) => (
+                {chaptersWithGeneral.map((chapter) => (
                   <option key={chapter.id} value={chapter.id}>
                     {chapter.volume_name} {chapter.chapter_code} {chapter.title}
                   </option>
@@ -1494,12 +1692,19 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
                 onChange={(event) => setKnowledgeForm((prev) => ({ ...prev, chapter_id: event.target.value }))}
               >
                 <option value="">选择章节</option>
-                {chapters.map((chapter) => (
-                  <option key={chapter.id} value={chapter.id}>
+                {chaptersWithGeneral.map((chapter) => (
+                  <option
+                    key={chapter.id}
+                    value={chapter.id}
+                    disabled={String(chapter.id) === GENERAL_CHAPTER_VALUE}
+                  >
                     {chapter.chapter_code} {chapter.title}
                   </option>
                 ))}
               </select>
+              {knowledgeForm.chapter_id === GENERAL_CHAPTER_VALUE ? (
+                <span className="hint">该功能需真实章节</span>
+              ) : null}
               <input
                 type="text"
                 placeholder="知识点编号"
@@ -1547,10 +1752,10 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredKnowledgePoints.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.id}</td>
-                      <td>{chapterMap[item.chapter_id] || item.chapter_id}</td>
+                {filteredKnowledgePoints.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.id}</td>
+                    <td>{chapterMap[item.chapter_id] || item.chapter_id || GENERAL_CHAPTER_LABEL}</td>
                       <td>
                         <div>{item.kp_code} {item.name}</div>
                         <div className="hint">{item.description || "-"}</div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import UploadWizard from "../components/UploadWizard";
 import { apiRequest, fetchUploadOptions, uploadWithProgress } from "../lib/api";
+import { withGeneralChapterOption } from "../lib/chapterOptions";
 
 export default function UploadPage({ token, onLogin, onRegister, setGlobalMessage }) {
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
@@ -42,7 +43,7 @@ export default function UploadPage({ token, onLogin, onRegister, setGlobalMessag
           apiRequest("/api/resources/ai-status", { token })
         ]);
         setVolumes(data?.volumes || []);
-        setChapters(data?.chapters || []);
+        setChapters(withGeneralChapterOption(data?.chapters || []));
         setSections(data?.sections || []);
         setTags(data?.tags || []);
         setDifficulties(data?.difficulties?.length ? data.difficulties : ["基础", "进阶", "挑战"]);
@@ -97,6 +98,7 @@ export default function UploadPage({ token, onLogin, onRegister, setGlobalMessag
     formData.append("tags", payload.tags || "");
     formData.append("resource_kind", payload.resource_kind || "tutorial");
     formData.append("difficulty", payload.difficulty || "");
+    formData.append("chapter_mode", payload.chapter_mode || "normal");
     if (payload.chapter_id) {
       formData.append("chapter_id", payload.chapter_id);
     }

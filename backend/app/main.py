@@ -303,7 +303,15 @@ RUNTIME_SCHEMA_PATCHES = [
       object_key VARCHAR(255),
       title VARCHAR(255) NOT NULL,
       summary TEXT,
+      content_text TEXT,
+      content_chars INT NOT NULL DEFAULT 0,
+      content_truncated BOOLEAN NOT NULL DEFAULT FALSE,
+      content_hash VARCHAR(64),
       tags TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+      content_embedding_json JSONB,
+      content_embedding_model VARCHAR(100),
+      content_indexed_at TIMESTAMPTZ,
+      parse_error TEXT,
       fingerprint VARCHAR(128) NOT NULL UNIQUE,
       stage VARCHAR(30) NOT NULL DEFAULT 'senior',
       subject VARCHAR(50) NOT NULL DEFAULT '物理',
@@ -316,8 +324,34 @@ RUNTIME_SCHEMA_PATCHES = [
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     """,
+    "ALTER TABLE source_documents ADD COLUMN IF NOT EXISTS content_text TEXT;",
+    "ALTER TABLE source_documents ADD COLUMN IF NOT EXISTS content_chars INT NOT NULL DEFAULT 0;",
+    "ALTER TABLE source_documents ADD COLUMN IF NOT EXISTS content_truncated BOOLEAN NOT NULL DEFAULT FALSE;",
+    "ALTER TABLE source_documents ADD COLUMN IF NOT EXISTS content_hash VARCHAR(64);",
+    "ALTER TABLE source_documents ADD COLUMN IF NOT EXISTS content_embedding_json JSONB;",
+    "ALTER TABLE source_documents ADD COLUMN IF NOT EXISTS content_embedding_model VARCHAR(100);",
+    "ALTER TABLE source_documents ADD COLUMN IF NOT EXISTS content_indexed_at TIMESTAMPTZ;",
+    "ALTER TABLE source_documents ADD COLUMN IF NOT EXISTS parse_error TEXT;",
     "CREATE INDEX IF NOT EXISTS idx_source_documents_scope ON source_documents(stage, subject, status, updated_at DESC);",
     "CREATE INDEX IF NOT EXISTS idx_source_documents_chapter_id ON source_documents(chapter_id);",
+    "CREATE INDEX IF NOT EXISTS idx_source_documents_content_hash ON source_documents(content_hash);",
+    """
+    DO $$
+    BEGIN
+      IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vector') THEN
+        ALTER TABLE source_documents ADD COLUMN IF NOT EXISTS content_embedding_vec vector(768);
+      END IF;
+    END $$;
+    """,
+    """
+    DO $$
+    BEGIN
+      IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vector') THEN
+        CREATE INDEX IF NOT EXISTS idx_source_documents_embedding_vec_hnsw
+        ON source_documents USING hnsw (content_embedding_vec vector_cosine_ops);
+      END IF;
+    END $$;
+    """,
     """
     CREATE TABLE IF NOT EXISTS ingest_jobs (
       id SERIAL PRIMARY KEY,

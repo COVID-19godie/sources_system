@@ -18,6 +18,7 @@ def _can_manage(user: models.User) -> bool:
 @router.get("", response_model=list[schemas.KnowledgePointOut])
 def list_knowledge_points(
     chapter_id: int | None = Query(default=None),
+    chapter_mode: str = Query(default="normal", pattern="^(normal|general)$"),
     volume_code: str | None = Query(default=None),
     q: str | None = Query(default=None),
     status_filter: str | None = Query(default=None, alias="status"),
@@ -25,6 +26,9 @@ def list_knowledge_points(
     db: Session = Depends(get_db_read),
     _: models.User = Depends(get_current_user),
 ):
+    if (chapter_mode or "").strip().lower() == "general":
+        return []
+
     query = db.query(models.KnowledgePoint)
     if chapter_id is not None:
         query = query.filter(models.KnowledgePoint.chapter_id == chapter_id)
