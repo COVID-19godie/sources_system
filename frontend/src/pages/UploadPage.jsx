@@ -106,6 +106,9 @@ export default function UploadPage({ token, onLogin, onRegister, setGlobalMessag
     if (payload.volume_code) {
       formData.append("volume_code", payload.volume_code);
     }
+    if (payload.external_url) {
+      formData.append("external_url", payload.external_url);
+    }
     if (payload.file) {
       formData.append("file", payload.file);
     }

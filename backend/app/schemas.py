@@ -395,6 +395,7 @@ class ResourceOut(BaseModel):
     section: ResourceSectionLiteOut | None = None
     volume_code: str | None = None
     source_filename: str | None = None
+    external_url: str | None = None
     title_auto_generated: bool = True
     rename_version: str = "v1"
     storage_provider: StorageProvider
@@ -441,6 +442,118 @@ class UploadOptionsOut(BaseModel):
     tags: list[ResourceTagOut]
     difficulties: list[str]
     quick_queries: list[str]
+
+
+class IngestUrlRequest(BaseModel):
+    url: str = Field(min_length=5, max_length=1024)
+    title: str | None = Field(default=None, max_length=255)
+    stage: str = "senior"
+    subject: str = "物理"
+
+
+class SourceDocumentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    source_type: str
+    url: str | None
+    object_key: str | None
+    title: str
+    summary: str | None
+    tags: list[str] = Field(default_factory=list)
+    fingerprint: str
+    stage: str
+    subject: str
+    chapter_id: int | None
+    confidence: float | None
+    status: str
+    published_at: datetime | None
+    created_by: int | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class IngestJobOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    source_type: str
+    url: str | None
+    source_document_id: int | None
+    stage: str
+    subject: str
+    status: str
+    progress: float
+    detail: str | None
+    created_by: int | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class IngestSubmitOut(BaseModel):
+    job: IngestJobOut
+    document: SourceDocumentOut | None = None
+
+
+class SourceDocumentStatusRequest(BaseModel):
+    status: Literal["ready", "published", "hidden", "failed", "pending_review"]
+
+
+class KnowledgePointCreateRequest(BaseModel):
+    chapter_id: int
+    kp_code: str = Field(min_length=1, max_length=80)
+    name: str = Field(min_length=1, max_length=255)
+    aliases: list[str] = Field(default_factory=list)
+    description: str | None = None
+    difficulty: str | None = Field(default=None, max_length=30)
+    prerequisite_level: float = Field(default=0.0, ge=0.0, le=1.0)
+    status: str = "draft"
+
+
+class KnowledgePointUpdateRequest(BaseModel):
+    kp_code: str | None = Field(default=None, min_length=1, max_length=80)
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    aliases: list[str] | None = None
+    description: str | None = None
+    difficulty: str | None = Field(default=None, max_length=30)
+    prerequisite_level: float | None = Field(default=None, ge=0.0, le=1.0)
+    status: str | None = None
+
+
+class KnowledgePointOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    chapter_id: int
+    kp_code: str
+    name: str
+    aliases: list[str] = Field(default_factory=list)
+    description: str | None
+    difficulty: str | None
+    prerequisite_level: float
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class KnowledgeEdgeCreateRequest(BaseModel):
+    src_kp_id: int
+    dst_kp_id: int
+    edge_type: Literal["prerequisite", "related", "contains", "applies_to"] = "related"
+    strength: float = Field(default=0.5, ge=0.0, le=1.0)
+    evidence_count: int = Field(default=0, ge=0)
+
+
+class KnowledgeEdgeOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    src_kp_id: int
+    dst_kp_id: int
+    edge_type: str
+    strength: float
+    evidence_count: int
+    created_at: datetime
 
 
 class ReviewRequest(BaseModel):
@@ -735,6 +848,38 @@ class RagQaResponse(BaseModel):
     citations: list[RagCitationOut]
     highlight_nodes: list[str] = Field(default_factory=list)
     highlight_edges: list[str] = Field(default_factory=list)
+
+
+class RagAskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+    top_k: int = Field(default=12, ge=1, le=20)
+
+
+class RagAskResponse(BaseModel):
+    answer: str
+    citations: list[RagCitationOut]
+    used_count: int
+
+
+class RagGraphEmbeddingNodeOut(BaseModel):
+    id: str
+    label: str
+    node_type: str
+    x: float
+    y: float
+    z: float
+    prerequisite_level: float = 0.0
+    relation_strength: float = 0.0
+    heat: float = 0.0
+    created_at_ts: int = 0
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class RagGraphEmbeddingOut(BaseModel):
+    workspace_id: int
+    generated_at: datetime
+    nodes: list[RagGraphEmbeddingNodeOut]
+    edges: list[RagGraphEdgeOut]
 
 
 class RagQaLogOut(BaseModel):

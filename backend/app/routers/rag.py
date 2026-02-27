@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import hashlib
 import logging
+import math
 from pathlib import Path
 import re
 import threading
@@ -288,6 +290,84 @@ def _safe_answer(question: str, contexts: list[dict]) -> str:
     for idx, row in enumerate(contexts[:4], start=1):
         lines.append(f"{idx}. {row.get('title')}: {row.get('summary') or row.get('snippet') or ''}")
     return "\n".join(lines)[:2000]
+
+
+def _hash_to_axis(node_id: str, salt: str) -> float:
+    digest = hashlib.sha256(f"{salt}:{node_id}".encode("utf-8")).hexdigest()
+    value = int(digest[:8], 16) / 0xFFFFFFFF
+    return value * 2.0 - 1.0
+
+
+def _parse_created_at_ts(meta: dict | None) -> int:
+    if not meta:
+        return 0
+    raw = meta.get("created_at") or meta.get("created_at_ts")
+    if raw is None:
+        return 0
+    if isinstance(raw, (int, float)):
+        return int(raw)
+    if isinstance(raw, str):
+        try:
+            return int(datetime.fromisoformat(raw.replace("Z", "+00:00")).timestamp())
+        except ValueError:
+            return 0
+    return 0
+
+
+def _to_graph_embedding_out(workspace_id: int, graph: schemas.RagGraphOut) -> schemas.RagGraphEmbeddingOut:
+    edge_weights: dict[str, list[float]] = {}
+    for edge in graph.edges:
+        weight = float(edge.weight or 0.0)
+        edge_weights.setdefault(edge.source, []).append(weight)
+        edge_weights.setdefault(edge.target, []).append(weight)
+
+    nodes: list[schemas.RagGraphEmbeddingNodeOut] = []
+    for node in graph.nodes:
+        meta = node.meta or {}
+        prerequisite = float(meta.get("prerequisite_level") or 0.0)
+        relation_strength = (
+            sum(edge_weights.get(node.id, [])) / max(1, len(edge_weights.get(node.id, [])))
+            if edge_weights.get(node.id)
+            else float(node.score or 0.0)
+        )
+        heat = float(meta.get("heat") or meta.get("hotness") or node.score or 0.0)
+        base = {
+            "chapter": 2.2,
+            "section": 1.6,
+            "format": 1.1,
+            "resource": 0.7,
+        }.get(node.node_type, 0.5)
+
+        x = _hash_to_axis(node.id, "x") * (1.2 + base)
+        y = _hash_to_axis(node.id, "y") * (0.9 + relation_strength)
+        z = _hash_to_axis(node.id, "z") * (0.8 + prerequisite)
+        if node.chapter_id:
+            x += (node.chapter_id % 11) * 0.2
+        if node.section_id:
+            y += (node.section_id % 7) * 0.1
+        z += math.tanh(heat) * 0.7
+
+        nodes.append(
+            schemas.RagGraphEmbeddingNodeOut(
+                id=node.id,
+                label=node.keyword_label or node.label,
+                node_type=node.node_type,
+                x=round(x, 6),
+                y=round(y, 6),
+                z=round(z, 6),
+                prerequisite_level=round(prerequisite, 6),
+                relation_strength=round(relation_strength, 6),
+                heat=round(heat, 6),
+                created_at_ts=_parse_created_at_ts(meta),
+                meta=meta,
+            )
+        )
+    return schemas.RagGraphEmbeddingOut(
+        workspace_id=workspace_id,
+        generated_at=datetime.now(timezone.utc),
+        nodes=nodes,
+        edges=graph.edges,
+    )
 
 
 def _upsert_entity(
@@ -2546,6 +2626,214 @@ def workspace_qa(
         highlight_nodes=list(dict.fromkeys(highlight_nodes)),
         highlight_edges=list(dict.fromkeys(highlight_edges)),
     )
+
+
+@router.post("/ask", response_model=schemas.RagAskResponse)
+def rag_ask_global(
+    payload: schemas.RagAskRequest,
+    db: Session = Depends(get_db_read),
+    _: models.User = Depends(get_current_user),
+):
+    rows = (
+        db.query(models.Resource)
+        .filter(
+            models.Resource.status == models.ResourceStatus.approved,
+            models.Resource.is_trashed.is_(False),
+        )
+        .order_by(models.Resource.updated_at.desc())
+        .limit(1200)
+        .all()
+    )
+    query_embedding = _safe_embedding(payload.question)
+    candidates: list[semantic_ranker.SemanticCandidate] = []
+    for row in rows:
+        candidates.append(
+            semantic_ranker.SemanticCandidate(
+                candidate_id=f"resource:{row.id}",
+                title=row.title,
+                description=row.description or "",
+                summary=row.ai_summary or "",
+                tags=list(dict.fromkeys((row.ai_tags or []) + (row.tags or []))),
+                embedding=row.embedding_json if isinstance(row.embedding_json, list) else None,
+                chapter_id=row.chapter_id,
+                section_id=row.section_id,
+            )
+        )
+
+    ranked = semantic_ranker.rank_candidates(
+        payload.question,
+        candidates,
+        query_embedding=query_embedding,
+        top_k=payload.top_k,
+    )
+    row_map = {row.id: row for row in rows}
+    contexts: list[dict] = []
+    citations: list[schemas.RagCitationOut] = []
+    for item in ranked.items:
+        resource_id = int(item.candidate.candidate_id.split(":", 1)[1])
+        row = row_map.get(resource_id)
+        if not row:
+            continue
+        summary = row.ai_summary or row.description or ""
+        contexts.append(
+            {
+                "id": row.id,
+                "title": row.title,
+                "summary": summary,
+                "snippet": summary[:280],
+                "tags": row.ai_tags or row.tags or [],
+            }
+        )
+        citations.append(
+            schemas.RagCitationOut(
+                source_id=row.id,
+                title=row.title,
+                evidence=summary[:280],
+                score=round(item.probability, 6),
+            )
+        )
+    answer = _safe_answer(payload.question, contexts)
+    return schemas.RagAskResponse(
+        answer=answer,
+        citations=citations,
+        used_count=len(citations),
+    )
+
+
+@router.get("/graph-embedding", response_model=schemas.RagGraphEmbeddingOut)
+def rag_graph_embedding(
+    workspace_id: int | None = Query(default=None),
+    stage: str = Query(default="senior"),
+    subject: str = Query(default="物理"),
+    q: str | None = Query(default=None),
+    limit: int = Query(default=200, ge=40, le=800),
+    scope: str = Query(default=RAG_GRAPH_SCOPE_PUBLIC, pattern="^(public|mixed)$"),
+    include_format_nodes: bool = Query(default=True),
+    dedupe: bool = Query(default=True),
+    include_variants: bool = Query(default=True),
+    db: Session = Depends(get_db_read),
+    current_user: models.User = Depends(get_current_user),
+):
+    workspace = None
+    if workspace_id is not None:
+        workspace = _ensure_workspace(db, workspace_id)
+    else:
+        workspace = (
+            db.query(models.RagWorkspace)
+            .filter(
+                models.RagWorkspace.stage == stage,
+                models.RagWorkspace.subject == subject,
+            )
+            .order_by(models.RagWorkspace.updated_at.desc())
+            .first()
+        )
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    graph_out = _build_workspace_graph(
+        db,
+        workspace,
+        q=q,
+        limit=limit,
+        scope=scope,
+        include_format_nodes=include_format_nodes,
+        dedupe=dedupe,
+        include_variants=include_variants,
+        access_user_id=current_user.id,
+    )
+    embedding_out = _to_graph_embedding_out(workspace.id, graph_out)
+
+    chapter_rows = (
+        db.query(models.Chapter)
+        .filter(
+            models.Chapter.stage == workspace.stage,
+            models.Chapter.subject == workspace.subject,
+            models.Chapter.is_enabled.is_(True),
+        )
+        .all()
+    )
+    chapter_ids = [item.id for item in chapter_rows]
+    if chapter_ids:
+        kp_query = db.query(models.KnowledgePoint).filter(models.KnowledgePoint.chapter_id.in_(chapter_ids))
+        if scope == RAG_GRAPH_SCOPE_PUBLIC:
+            kp_query = kp_query.filter(models.KnowledgePoint.status == "published")
+        if q and q.strip():
+            keyword = f"%{q.strip()}%"
+            kp_query = kp_query.filter(
+                or_(
+                    models.KnowledgePoint.name.ilike(keyword),
+                    models.KnowledgePoint.kp_code.ilike(keyword),
+                    models.KnowledgePoint.description.ilike(keyword),
+                )
+            )
+        kp_rows = kp_query.order_by(models.KnowledgePoint.chapter_id.asc(), models.KnowledgePoint.kp_code.asc()).limit(2000).all()
+        kp_node_ids: dict[int, str] = {}
+        existing_node_ids = {item.id for item in embedding_out.nodes}
+        for kp in kp_rows:
+            node_id = f"knowledge:{kp.id}"
+            kp_node_ids[kp.id] = node_id
+            if node_id in existing_node_ids:
+                continue
+            x = _hash_to_axis(node_id, "kx") * 1.4 + (kp.chapter_id % 11) * 0.25
+            y = _hash_to_axis(node_id, "ky") * 1.1
+            z = _hash_to_axis(node_id, "kz") * 1.0 + math.tanh(float(kp.prerequisite_level or 0.0))
+            embedding_out.nodes.append(
+                schemas.RagGraphEmbeddingNodeOut(
+                    id=node_id,
+                    label=f"{kp.kp_code} {kp.name}".strip(),
+                    node_type="knowledge_point",
+                    x=round(x, 6),
+                    y=round(y, 6),
+                    z=round(z, 6),
+                    prerequisite_level=float(kp.prerequisite_level or 0.0),
+                    relation_strength=0.0,
+                    heat=0.0,
+                    created_at_ts=int(kp.created_at.timestamp()) if kp.created_at else 0,
+                    meta={
+                        "chapter_id": kp.chapter_id,
+                        "difficulty": kp.difficulty,
+                        "status": kp.status,
+                        "aliases": kp.aliases or [],
+                    },
+                )
+            )
+            existing_node_ids.add(node_id)
+            chapter_node_id = f"chapter:{kp.chapter_id}"
+            if chapter_node_id in existing_node_ids:
+                embedding_out.edges.append(
+                    schemas.RagGraphEdgeOut(
+                        source=chapter_node_id,
+                        target=node_id,
+                        edge_type="contains",
+                        weight=1.0,
+                    )
+                )
+
+        if kp_node_ids:
+            edge_rows = (
+                db.query(models.KnowledgeEdge)
+                .filter(
+                    models.KnowledgeEdge.src_kp_id.in_(list(kp_node_ids.keys())),
+                    models.KnowledgeEdge.dst_kp_id.in_(list(kp_node_ids.keys())),
+                )
+                .limit(5000)
+                .all()
+            )
+            for edge in edge_rows:
+                src_id = kp_node_ids.get(edge.src_kp_id)
+                dst_id = kp_node_ids.get(edge.dst_kp_id)
+                if not src_id or not dst_id:
+                    continue
+                embedding_out.edges.append(
+                    schemas.RagGraphEdgeOut(
+                        source=src_id,
+                        target=dst_id,
+                        edge_type=edge.edge_type,
+                        weight=float(edge.strength or 0.5),
+                    )
+                )
+
+    return embedding_out
 
 
 @router.get("/workspaces/{workspace_id}/jobs", response_model=list[schemas.RagJobOut])

@@ -4,10 +4,14 @@ import {
   adoptResourceAiTags,
   apiRequest,
   bulkManageResources,
+  createKnowledgeEdge,
+  createKnowledgePoint,
   createTag,
   fetchTags,
   formatTime,
+  listIngestJobs,
   listAdminResources,
+  listKnowledgePoints,
   listTrashItems,
   notifyResourcesChanged,
   purgeExpiredTrash,
@@ -15,7 +19,9 @@ import {
   reconcileStorage,
   reorderTags,
   restoreTrashItem,
+  submitIngestUrl,
   setResourceVisibility,
+  updateKnowledgePoint,
   updateResourceTags,
   updateTag
 } from "../lib/api";
@@ -170,6 +176,30 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
   const [trashPageSize] = useState(20);
   const [trashTotal, setTrashTotal] = useState(0);
   const [trashLoading, setTrashLoading] = useState(false);
+  const [knowledgePoints, setKnowledgePoints] = useState([]);
+  const [ingestJobs, setIngestJobs] = useState([]);
+  const [knowledgeFilters, setKnowledgeFilters] = useState({
+    chapterId: "",
+    q: "",
+    status: "all"
+  });
+  const [ingestForm, setIngestForm] = useState({ url: "", title: "" });
+  const [knowledgeForm, setKnowledgeForm] = useState({
+    chapter_id: "",
+    kp_code: "",
+    name: "",
+    aliases: "",
+    description: "",
+    difficulty: "",
+    prerequisite_level: 0.3,
+    status: "published"
+  });
+  const [edgeForm, setEdgeForm] = useState({
+    src_kp_id: "",
+    dst_kp_id: "",
+    edge_type: "related",
+    strength: 0.6
+  });
 
   const [reviewModal, setReviewModal] = useState({
     open: false,
@@ -234,18 +264,22 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
     }
 
     try {
-      const [pendingData, chapterData, sectionData, tagData, auditData] = await Promise.all([
+      const [pendingData, chapterData, sectionData, tagData, auditData, kpData, ingestData] = await Promise.all([
         apiRequest("/api/resources/pending", { token }),
         apiRequest(`/api/chapters?stage=${STAGE}&subject=${encodeURIComponent(SUBJECT)}`, { token }),
         apiRequest(`/api/sections?stage=${STAGE}&subject=${encodeURIComponent(SUBJECT)}`, { token }),
         fetchTags({ token, stage: STAGE, subject: SUBJECT }),
-        apiRequest(`/api/chapters/catalog-audit?stage=${STAGE}&subject=${encodeURIComponent(SUBJECT)}`, { token })
+        apiRequest(`/api/chapters/catalog-audit?stage=${STAGE}&subject=${encodeURIComponent(SUBJECT)}`, { token }),
+        listKnowledgePoints({ token, limit: 500 }),
+        listIngestJobs({ token, limit: 30 })
       ]);
       setPendingItems(pendingData || []);
       setChapters(chapterData || []);
       setSections(sectionData || []);
       setTags(tagData || []);
       setCatalogAudit(auditData || null);
+      setKnowledgePoints(kpData || []);
+      setIngestJobs(ingestData || []);
       await loadManagedResources();
     } catch (error) {
       setGlobalMessage(error.message);
@@ -272,6 +306,119 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
         : (rows || []);
       setManagedItems(filtered);
       setSelectedResourceIds((prev) => prev.filter((id) => filtered.some((item) => item.id === id)));
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function loadKnowledgeData() {
+    if (!token || role !== "admin") {
+      setKnowledgePoints([]);
+      setIngestJobs([]);
+      return;
+    }
+    try {
+      const [kpData, ingestData] = await Promise.all([
+        listKnowledgePoints({
+          token,
+          chapterId: knowledgeFilters.chapterId,
+          q: knowledgeFilters.q,
+          status: knowledgeFilters.status === "all" ? "" : knowledgeFilters.status,
+          limit: 600
+        }),
+        listIngestJobs({ token, limit: 50 })
+      ]);
+      setKnowledgePoints(kpData || []);
+      setIngestJobs(ingestData || []);
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handleSubmitIngest() {
+    if (!ingestForm.url.trim()) {
+      setGlobalMessage("请输入要采集的链接");
+      return;
+    }
+    try {
+      await submitIngestUrl(
+        {
+          url: ingestForm.url.trim(),
+          title: ingestForm.title.trim() || null,
+          stage: STAGE,
+          subject: SUBJECT
+        },
+        token
+      );
+      setIngestForm({ url: "", title: "" });
+      setGlobalMessage("链接采集任务已提交");
+      await loadKnowledgeData();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handleCreateKnowledgePoint() {
+    if (!knowledgeForm.chapter_id || !knowledgeForm.kp_code.trim() || !knowledgeForm.name.trim()) {
+      setGlobalMessage("请填写章节、知识点编号和名称");
+      return;
+    }
+    try {
+      await createKnowledgePoint(
+        {
+          chapter_id: Number(knowledgeForm.chapter_id),
+          kp_code: knowledgeForm.kp_code.trim(),
+          name: knowledgeForm.name.trim(),
+          aliases: parseTagInput(knowledgeForm.aliases),
+          description: knowledgeForm.description.trim() || null,
+          difficulty: knowledgeForm.difficulty.trim() || null,
+          prerequisite_level: Number(knowledgeForm.prerequisite_level || 0),
+          status: knowledgeForm.status || "published"
+        },
+        token
+      );
+      setKnowledgeForm((prev) => ({
+        ...prev,
+        kp_code: "",
+        name: "",
+        aliases: "",
+        description: ""
+      }));
+      setGlobalMessage("知识点已创建");
+      await loadKnowledgeData();
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handleCreateKnowledgeEdge() {
+    if (!edgeForm.src_kp_id || !edgeForm.dst_kp_id) {
+      setGlobalMessage("请选择关系起点和终点");
+      return;
+    }
+    try {
+      await createKnowledgeEdge(
+        {
+          src_kp_id: Number(edgeForm.src_kp_id),
+          dst_kp_id: Number(edgeForm.dst_kp_id),
+          edge_type: edgeForm.edge_type,
+          strength: Number(edgeForm.strength),
+          evidence_count: 0
+        },
+        token
+      );
+      setGlobalMessage("知识关系已创建");
+    } catch (error) {
+      setGlobalMessage(error.message);
+    }
+  }
+
+  async function handleToggleKnowledgeStatus(item) {
+    const nextStatus = item.status === "published" ? "hidden" : "published";
+    try {
+      await updateKnowledgePoint(item.id, { status: nextStatus }, token);
+      setGlobalMessage(`知识点已设为${nextStatus === "published" ? "公开" : "隐藏"}`);
+      await loadKnowledgeData();
     } catch (error) {
       setGlobalMessage(error.message);
     }
@@ -339,6 +486,14 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
     loadTrash(trashPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, role, trashScope, trashQuery, trashPage, trashPageSize]);
+
+  useEffect(() => {
+    if (activeTab !== "knowledge") {
+      return;
+    }
+    loadKnowledgeData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, role, activeTab, knowledgeFilters.chapterId, knowledgeFilters.q, knowledgeFilters.status]);
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -833,6 +988,16 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
     () => [...managedItems].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)),
     [managedItems]
   );
+  const filteredKnowledgePoints = useMemo(() => {
+    return [...knowledgePoints].sort((a, b) => {
+      const chapterA = Number(a.chapter_id || 0);
+      const chapterB = Number(b.chapter_id || 0);
+      if (chapterA !== chapterB) {
+        return chapterA - chapterB;
+      }
+      return String(a.kp_code || "").localeCompare(String(b.kp_code || ""), "zh-CN");
+    });
+  }, [knowledgePoints]);
 
   const statusLabel = {
     pending: "待审核",
@@ -892,6 +1057,9 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
           </button>
           <button type="button" className={activeTab === "structure" ? "active" : ""} onClick={() => setActiveTab("structure")}>
             结构配置
+          </button>
+          <button type="button" className={activeTab === "knowledge" ? "active" : ""} onClick={() => setActiveTab("knowledge")}>
+            知识库
           </button>
           <button type="button" className={activeTab === "trash" ? "active" : ""} onClick={() => setActiveTab("trash")}>
             回收站
@@ -1236,6 +1404,215 @@ export default function AdminPage({ token, role, onLogin, setGlobalMessage }) {
                 </tbody>
               </table>
             )}
+          </section>
+        </>
+      ) : null}
+
+      {activeTab === "knowledge" ? (
+        <>
+          <section className="card">
+            <h2>来源采集（URL）</h2>
+            <div className="action-buttons">
+              <input
+                type="url"
+                placeholder="https://..."
+                value={ingestForm.url}
+                onChange={(event) => setIngestForm((prev) => ({ ...prev, url: event.target.value }))}
+              />
+              <input
+                type="text"
+                placeholder="可选标题"
+                value={ingestForm.title}
+                onChange={(event) => setIngestForm((prev) => ({ ...prev, title: event.target.value }))}
+              />
+              <button type="button" onClick={handleSubmitIngest}>提交采集</button>
+            </div>
+            {!ingestJobs.length ? (
+              <p className="hint">暂无采集任务</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>URL</th>
+                    <th>状态</th>
+                    <th>进度</th>
+                    <th>详情</th>
+                    <th>时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ingestJobs.map((job) => (
+                    <tr key={job.id}>
+                      <td>{job.id}</td>
+                      <td>{job.url || "-"}</td>
+                      <td>{job.status}</td>
+                      <td>{Math.round((job.progress || 0) * 100)}%</td>
+                      <td>{job.detail || "-"}</td>
+                      <td>{formatTime(job.updated_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          <section className="card">
+            <h2>知识点管理</h2>
+            <div className="action-buttons">
+              <select
+                value={knowledgeFilters.chapterId}
+                onChange={(event) => setKnowledgeFilters((prev) => ({ ...prev, chapterId: event.target.value }))}
+              >
+                <option value="">全部章节</option>
+                {chapters.map((chapter) => (
+                  <option key={chapter.id} value={chapter.id}>
+                    {chapter.volume_name} {chapter.chapter_code} {chapter.title}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="搜索知识点"
+                value={knowledgeFilters.q}
+                onChange={(event) => setKnowledgeFilters((prev) => ({ ...prev, q: event.target.value }))}
+              />
+              <select
+                value={knowledgeFilters.status}
+                onChange={(event) => setKnowledgeFilters((prev) => ({ ...prev, status: event.target.value }))}
+              >
+                <option value="all">全部状态</option>
+                <option value="published">公开</option>
+                <option value="hidden">隐藏</option>
+                <option value="draft">草稿</option>
+              </select>
+            </div>
+
+            <div className="action-buttons">
+              <select
+                value={knowledgeForm.chapter_id}
+                onChange={(event) => setKnowledgeForm((prev) => ({ ...prev, chapter_id: event.target.value }))}
+              >
+                <option value="">选择章节</option>
+                {chapters.map((chapter) => (
+                  <option key={chapter.id} value={chapter.id}>
+                    {chapter.chapter_code} {chapter.title}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="知识点编号"
+                value={knowledgeForm.kp_code}
+                onChange={(event) => setKnowledgeForm((prev) => ({ ...prev, kp_code: event.target.value }))}
+              />
+              <input
+                type="text"
+                placeholder="知识点名称"
+                value={knowledgeForm.name}
+                onChange={(event) => setKnowledgeForm((prev) => ({ ...prev, name: event.target.value }))}
+              />
+              <input
+                type="text"
+                placeholder="别名（逗号分隔）"
+                value={knowledgeForm.aliases}
+                onChange={(event) => setKnowledgeForm((prev) => ({ ...prev, aliases: event.target.value }))}
+              />
+              <input
+                type="text"
+                placeholder="难度（可选）"
+                value={knowledgeForm.difficulty}
+                onChange={(event) => setKnowledgeForm((prev) => ({ ...prev, difficulty: event.target.value }))}
+              />
+              <button type="button" onClick={handleCreateKnowledgePoint}>新增知识点</button>
+            </div>
+            <textarea
+              placeholder="知识点描述（可选）"
+              value={knowledgeForm.description}
+              onChange={(event) => setKnowledgeForm((prev) => ({ ...prev, description: event.target.value }))}
+            />
+
+            {!filteredKnowledgePoints.length ? (
+              <p className="hint">暂无知识点数据</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>章节</th>
+                    <th>知识点</th>
+                    <th>先修度</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredKnowledgePoints.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.id}</td>
+                      <td>{chapterMap[item.chapter_id] || item.chapter_id}</td>
+                      <td>
+                        <div>{item.kp_code} {item.name}</div>
+                        <div className="hint">{item.description || "-"}</div>
+                      </td>
+                      <td>{Number(item.prerequisite_level || 0).toFixed(2)}</td>
+                      <td>{item.status}</td>
+                      <td className="action-buttons">
+                        <button type="button" className="ghost" onClick={() => handleToggleKnowledgeStatus(item)}>
+                          {item.status === "published" ? "设为隐藏" : "设为公开"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          <section className="card">
+            <h2>知识关系（先修/关联）</h2>
+            <div className="action-buttons">
+              <select
+                value={edgeForm.src_kp_id}
+                onChange={(event) => setEdgeForm((prev) => ({ ...prev, src_kp_id: event.target.value }))}
+              >
+                <option value="">起点知识点</option>
+                {filteredKnowledgePoints.map((item) => (
+                  <option key={`src-${item.id}`} value={item.id}>
+                    {item.kp_code} {item.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={edgeForm.dst_kp_id}
+                onChange={(event) => setEdgeForm((prev) => ({ ...prev, dst_kp_id: event.target.value }))}
+              >
+                <option value="">终点知识点</option>
+                {filteredKnowledgePoints.map((item) => (
+                  <option key={`dst-${item.id}`} value={item.id}>
+                    {item.kp_code} {item.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={edgeForm.edge_type}
+                onChange={(event) => setEdgeForm((prev) => ({ ...prev, edge_type: event.target.value }))}
+              >
+                <option value="prerequisite">先修关系</option>
+                <option value="related">关联关系</option>
+                <option value="contains">包含关系</option>
+                <option value="applies_to">应用关系</option>
+              </select>
+              <input
+                type="number"
+                min="0"
+                max="1"
+                step="0.05"
+                value={edgeForm.strength}
+                onChange={(event) => setEdgeForm((prev) => ({ ...prev, strength: event.target.value }))}
+              />
+              <button type="button" onClick={handleCreateKnowledgeEdge}>创建关系</button>
+            </div>
           </section>
         </>
       ) : null}

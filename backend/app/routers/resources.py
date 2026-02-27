@@ -197,6 +197,9 @@ def resolve_access_urls(
     if resource.file_path:
         return schemas.AccessUrlsOut(open_url=resource.file_path, download_url=resource.file_path)
 
+    if resource.external_url:
+        return schemas.AccessUrlsOut(open_url=resource.external_url, download_url=resource.external_url)
+
     return None
 
 
@@ -522,6 +525,7 @@ def to_resource_out(resource: models.Resource) -> schemas.ResourceOut:
         section=to_section_lite(section),
         volume_code=resource.volume_code,
         source_filename=resource.source_filename,
+        external_url=resource.external_url,
         title_auto_generated=resource.title_auto_generated,
         rename_version=resource.rename_version,
         storage_provider=resource.storage_provider,
@@ -1225,12 +1229,22 @@ def create_resource(
     chapter_id: int | None = Form(default=None),
     section_id: int | None = Form(default=None),
     volume_code: str = Form(default=""),
+    external_url: str = Form(default=""),
     file: UploadFile | None = File(default=None),
     db: Session = Depends(get_db_write),
     current_user: models.User = Depends(get_current_user),
 ):
     parsed_tags = parse_tags(tags)
-    file_format = detect_file_format(file.filename if file else None)
+    normalized_url = external_url.strip()
+    if normalized_url:
+        normalized_url = _validate_external_url(normalized_url)
+    if not file and not normalized_url:
+        raise HTTPException(status_code=400, detail="必须上传文件或提供外部链接")
+
+    inferred_filename = ""
+    if normalized_url:
+        inferred_filename = Path(urlparse(normalized_url).path).name
+    file_format = detect_file_format(file.filename if file else inferred_filename or None)
     chapter = None
     resolved_volume_code = volume_code.strip() or None
     if chapter_id is not None:
@@ -1264,6 +1278,7 @@ def create_resource(
             description=description.strip(),
             tags=parsed_tags,
             filename=file.filename if file else "",
+            external_url=normalized_url,
             content_text=_read_upload_preview_text(file, file_format),
             volume_code=resolved_volume_code,
             top_k=3,
@@ -1330,6 +1345,7 @@ def create_resource(
         section_id=section.id if section else None,
         volume_code=resolved_volume_code,
         source_filename=source_filename,
+        external_url=normalized_url or None,
         title_auto_generated=title_auto_generated,
         rename_version="v1",
         storage_provider=storage_provider,

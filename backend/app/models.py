@@ -217,6 +217,7 @@ class Resource(Base):
     )
     volume_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     source_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    external_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     title_auto_generated: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     rename_version: Mapped[str] = mapped_column(String(20), default="v1", nullable=False)
     storage_provider: Mapped[StorageProvider] = mapped_column(
@@ -300,6 +301,125 @@ class ResourceFileVariant(Base):
     derived_from: Mapped["ResourceFileVariant | None"] = relationship(
         remote_side="ResourceFileVariant.id",
         foreign_keys=[derived_from_variant_id],
+    )
+
+
+class SourceDocument(Base):
+    __tablename__ = "source_documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    source_type: Mapped[str] = mapped_column(String(20), nullable=False, default="url")
+    url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    object_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    fingerprint: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    stage: Mapped[str] = mapped_column(String(30), nullable=False, default="senior")
+    subject: Mapped[str] = mapped_column(String(50), nullable=False, default="物理")
+    chapter_id: Mapped[int | None] = mapped_column(ForeignKey("chapters.id"), nullable=True, index=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending_review")
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class IngestJob(Base):
+    __tablename__ = "ingest_jobs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    source_type: Mapped[str] = mapped_column(String(20), nullable=False, default="url")
+    url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    source_document_id: Mapped[int | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
+    stage: Mapped[str] = mapped_column(String(30), nullable=False, default="senior")
+    subject: Mapped[str] = mapped_column(String(50), nullable=False, default="物理")
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="queued")
+    progress: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class KnowledgePoint(Base):
+    __tablename__ = "knowledge_points"
+    __table_args__ = (
+        UniqueConstraint("chapter_id", "kp_code", name="uq_knowledge_points_chapter_code"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    chapter_id: Mapped[int] = mapped_column(ForeignKey("chapters.id"), nullable=False, index=True)
+    kp_code: Mapped[str] = mapped_column(String(80), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    aliases: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    difficulty: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    prerequisite_level: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="draft")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class KnowledgeEdge(Base):
+    __tablename__ = "knowledge_edges"
+    __table_args__ = (
+        UniqueConstraint("src_kp_id", "dst_kp_id", "edge_type", name="uq_knowledge_edges_triple"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    src_kp_id: Mapped[int] = mapped_column(ForeignKey("knowledge_points.id"), nullable=False, index=True)
+    dst_kp_id: Mapped[int] = mapped_column(ForeignKey("knowledge_points.id"), nullable=False, index=True)
+    edge_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    strength: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)
+    evidence_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class KpEvidence(Base):
+    __tablename__ = "kp_evidences"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    kp_id: Mapped[int] = mapped_column(ForeignKey("knowledge_points.id"), nullable=False, index=True)
+    source_doc_id: Mapped[int] = mapped_column(ForeignKey("source_documents.id"), nullable=False, index=True)
+    snippet: Mapped[str] = mapped_column(Text, nullable=False)
+    score: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
 
 

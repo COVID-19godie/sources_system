@@ -326,6 +326,78 @@ export async function fetchUploadOptions(options = {}) {
   return apiRequest(`/api/meta/upload-options?${params.toString()}`, { token });
 }
 
+export async function submitIngestUrl(payload, token) {
+  return apiRequest("/api/ingest/url", {
+    method: "POST",
+    token,
+    body: payload
+  });
+}
+
+export async function listIngestJobs(options = {}) {
+  const {
+    token = "",
+    status = "",
+    limit = 50
+  } = options;
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  if (status.trim()) {
+    params.set("status", status.trim());
+  }
+  return apiRequest(`/api/ingest/jobs?${params.toString()}`, { token });
+}
+
+export async function listKnowledgePoints(options = {}) {
+  const {
+    token = "",
+    chapterId = "",
+    volumeCode = "",
+    q = "",
+    status = "",
+    limit = 500
+  } = options;
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  if (chapterId) {
+    params.set("chapter_id", String(chapterId));
+  }
+  if (volumeCode) {
+    params.set("volume_code", String(volumeCode));
+  }
+  if (q.trim()) {
+    params.set("q", q.trim());
+  }
+  if (status.trim()) {
+    params.set("status", status.trim());
+  }
+  return apiRequest(`/api/knowledge-points?${params.toString()}`, { token });
+}
+
+export async function createKnowledgePoint(payload, token) {
+  return apiRequest("/api/knowledge-points", {
+    method: "POST",
+    token,
+    body: payload
+  });
+}
+
+export async function updateKnowledgePoint(id, payload, token) {
+  return apiRequest(`/api/knowledge-points/${id}`, {
+    method: "PATCH",
+    token,
+    body: payload
+  });
+}
+
+export async function createKnowledgeEdge(payload, token) {
+  return apiRequest("/api/knowledge-points/edges", {
+    method: "POST",
+    token,
+    body: payload
+  });
+}
+
 export async function getRagGraph(options = {}) {
   const {
     token = "",
@@ -506,6 +578,44 @@ export async function askRagWorkspace(workspaceId, question, token) {
     token,
     body: { question }
   });
+}
+
+export async function askRagGlobal(payload, token) {
+  return apiRequest("/api/rag/ask", {
+    method: "POST",
+    token,
+    body: payload
+  });
+}
+
+export async function getRagGraphEmbedding(options = {}) {
+  const {
+    token = "",
+    workspaceId = "",
+    stage = "senior",
+    subject = "物理",
+    q = "",
+    limit = 200,
+    scope = "public",
+    includeFormatNodes = true,
+    dedupe = true,
+    includeVariants = true
+  } = options;
+  const params = new URLSearchParams();
+  params.set("stage", stage);
+  params.set("subject", subject);
+  params.set("limit", String(limit));
+  params.set("scope", scope);
+  params.set("include_format_nodes", includeFormatNodes ? "true" : "false");
+  params.set("dedupe", dedupe ? "true" : "false");
+  params.set("include_variants", includeVariants ? "true" : "false");
+  if (workspaceId) {
+    params.set("workspace_id", String(workspaceId));
+  }
+  if (q.trim()) {
+    params.set("q", q.trim());
+  }
+  return apiRequest(`/api/rag/graph-embedding?${params.toString()}`, { token });
 }
 
 export async function listRagJobs(workspaceId, token, limit = 50) {

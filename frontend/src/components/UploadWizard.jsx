@@ -31,6 +31,17 @@ function cleanKeyword(raw) {
   return sanitized || "资源";
 }
 
+function inferFileNameFromUrl(rawUrl) {
+  try {
+    const parsed = new URL(rawUrl);
+    const pathname = parsed.pathname || "";
+    const candidate = pathname.split("/").filter(Boolean).pop() || "";
+    return candidate || "link-resource";
+  } catch {
+    return "link-resource";
+  }
+}
+
 function buildAutoTitle({ volumeCode, chapter, section, fileName }) {
   const volumePart = volumeCode || chapter?.volume_code || "unassigned";
   const chapterPart = chapter?.chapter_code || "unassigned";
@@ -87,6 +98,7 @@ export default function UploadWizard({
   const [step, setStep] = useState(1);
   const [isDragActive, setIsDragActive] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
+  const [externalUrl, setExternalUrl] = useState("");
   const [pathPreview, setPathPreview] = useState("");
   const [isClassifying, setIsClassifying] = useState(false);
   const [isScopedClassifying, setIsScopedClassifying] = useState(false);
@@ -166,9 +178,9 @@ export default function UploadWizard({
       volumeCode: form.volume_code,
       chapter: selectedChapter,
       section: selectedSection,
-      fileName: uploadFile?.name || ""
+      fileName: uploadFile?.name || inferFileNameFromUrl(externalUrl)
     }),
-    [form.volume_code, selectedChapter, selectedSection, uploadFile]
+    [form.volume_code, selectedChapter, selectedSection, uploadFile, externalUrl]
   );
   const finalTitle = form.use_custom_title && form.custom_title.trim() ? form.custom_title.trim() : autoTitle;
 
@@ -236,14 +248,15 @@ export default function UploadWizard({
 
   useEffect(() => {
     async function loadPathPreview() {
-      if (!token || !uploadFile?.name) {
+      const sourceName = uploadFile?.name || (externalUrl.trim() ? inferFileNameFromUrl(externalUrl.trim()) : "");
+      if (!token || !sourceName) {
         setPathPreview("");
         return;
       }
       try {
         const data = await getUploadPathPreview({
           token,
-          filename: uploadFile.name,
+          filename: sourceName,
           chapterId: form.chapter_id,
           sectionId: form.section_id,
           volumeCode: form.volume_code,
@@ -254,7 +267,7 @@ export default function UploadWizard({
         const volumePart = form.volume_code || selectedChapter?.volume_code;
         const chapterPart = selectedChapter?.chapter_code;
         const sectionPart = selectedSection?.code;
-        const suffix = uploadFile.name.includes(".") ? uploadFile.name.slice(uploadFile.name.lastIndexOf(".")) : "";
+        const suffix = sourceName.includes(".") ? sourceName.slice(sourceName.lastIndexOf(".")) : "";
         if (volumePart && chapterPart && sectionPart) {
           setPathPreview(`resources/${volumePart}/${chapterPart}/${sectionPart}/<clean-name>${suffix}`);
         } else if (volumePart && sectionPart) {
@@ -266,11 +279,12 @@ export default function UploadWizard({
     }
 
     loadPathPreview();
-  }, [token, uploadFile, form.chapter_id, form.section_id, form.volume_code, autoResult, scopedAutoResult, selectedChapter, selectedSection]);
+  }, [token, uploadFile, externalUrl, form.chapter_id, form.section_id, form.volume_code, autoResult, scopedAutoResult, selectedChapter, selectedSection]);
 
   function resetWizard() {
     setStep(1);
     setUploadFile(null);
+    setExternalUrl("");
     setPathPreview("");
     setAutoResult(null);
     setScopedAutoResult(null);
@@ -292,8 +306,8 @@ export default function UploadWizard({
     });
   }
 
-  async function runAutoClassify(file) {
-    if (!token || !file) {
+  async function runAutoClassify({ file, url } = {}) {
+    if (!token || (!file && !url)) {
       setAutoResult(null);
       setScopedAutoResult(null);
       setLastGoodResult(null);
@@ -309,6 +323,7 @@ export default function UploadWizard({
       const data = await autoClassifyResource({
         token,
         file,
+        externalUrl: url || "",
         subject: "物理",
         stage: "senior"
       });
@@ -351,7 +366,7 @@ export default function UploadWizard({
 
   useEffect(() => {
     async function runScopedClassify() {
-      if (!token || !uploadFile || !form.volume_code) {
+      if (!token || (!uploadFile && !externalUrl.trim()) || !form.volume_code) {
         setScopedAutoResult(null);
         setIsScopedClassifying(false);
         return;
@@ -364,6 +379,7 @@ export default function UploadWizard({
         const data = await autoClassifyResource({
           token,
           file: uploadFile,
+          externalUrl: externalUrl.trim(),
           subject: "物理",
           stage: "senior",
           volumeCode: form.volume_code,
@@ -407,7 +423,7 @@ export default function UploadWizard({
       }
     }
     runScopedClassify();
-  }, [token, uploadFile, form.volume_code]);
+  }, [token, uploadFile, externalUrl, form.volume_code]);
 
   function onFileSelect(file) {
     if (!file) {
@@ -415,6 +431,7 @@ export default function UploadWizard({
     }
     setClassifyError("");
     setUploadFile(file);
+    setExternalUrl("");
     setAutoResult(null);
     setScopedAutoResult(null);
     setLastGoodResult(null);
@@ -426,13 +443,34 @@ export default function UploadWizard({
       section_id: ""
     }));
     setAutoFilledChapter(false);
-    runAutoClassify(file);
+    runAutoClassify({ file });
+  }
+
+  function runUrlClassify() {
+    const normalized = externalUrl.trim();
+    if (!normalized) {
+      setGlobalMessage("请先输入链接地址");
+      return;
+    }
+    setUploadFile(null);
+    setAutoResult(null);
+    setScopedAutoResult(null);
+    setLastGoodResult(null);
+    setDisplaySource("global");
+    setForm((prev) => ({
+      ...prev,
+      volume_code: "",
+      chapter_id: "",
+      section_id: ""
+    }));
+    setAutoFilledChapter(false);
+    runAutoClassify({ url: normalized });
   }
 
   function handleNext() {
     if (step === 1) {
-      if (!uploadFile) {
-        setGlobalMessage("请先选择上传文件");
+      if (!uploadFile && !externalUrl.trim()) {
+        setGlobalMessage("请先选择上传文件或输入资源链接");
         return;
       }
       if (!form.volume_code) {
@@ -460,8 +498,8 @@ export default function UploadWizard({
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!uploadFile) {
-      setGlobalMessage("请先选择上传文件");
+    if (!uploadFile && !externalUrl.trim()) {
+      setGlobalMessage("请先选择上传文件或输入资源链接");
       return;
     }
     if (!form.section_id) {
@@ -481,6 +519,7 @@ export default function UploadWizard({
       difficulty: form.difficulty,
       chapter_id: form.chapter_id || "",
       volume_code: form.volume_code || selectedChapter?.volume_code || "",
+      external_url: externalUrl.trim(),
       file: uploadFile
     });
 
@@ -540,6 +579,20 @@ export default function UploadWizard({
                 <span className="upload-file-picked muted">当前未选择文件</span>
               )}
             </div>
+            <div className="upload-url-row">
+              <input
+                type="url"
+                placeholder="或粘贴资源链接（http/https）"
+                value={externalUrl}
+                onChange={(event) => setExternalUrl(event.target.value)}
+              />
+              <button type="button" className="ghost" onClick={runUrlClassify}>
+                识别链接
+              </button>
+            </div>
+            {externalUrl.trim() ? (
+              <p className="hint">当前链接：{externalUrl.trim()}</p>
+            ) : null}
             {isClassifying ? (
               <p className="hint">AI 正在判章中...</p>
             ) : null}
@@ -593,7 +646,7 @@ export default function UploadWizard({
                   </div>
                 ) : null}
               </div>
-            ) : (!isClassifying && !isScopedClassifying && uploadFile) ? (
+            ) : (!isClassifying && !isScopedClassifying && (uploadFile || externalUrl.trim())) ? (
               <p className="hint">暂未收到判章结果，请重试或重新选择文件。</p>
             ) : null}
 

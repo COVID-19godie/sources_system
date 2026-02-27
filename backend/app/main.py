@@ -13,7 +13,21 @@ from app.core import rag_sync, trash_service
 from app.core.security import get_password_hash
 from app.core.db_read_write import WriteSessionLocal, write_engine
 from app.db import Base
-from app.routers import auth, chapters, meta, mineru, office, rag, resources, sections, storage, tags, trash
+from app.routers import (
+    auth,
+    chapters,
+    ingest,
+    knowledge,
+    meta,
+    mineru,
+    office,
+    rag,
+    resources,
+    sections,
+    storage,
+    tags,
+    trash,
+)
 
 
 app = FastAPI(title="Education Resource Demo", version="1.1.0")
@@ -35,6 +49,8 @@ app.include_router(chapters.router, prefix="/api/chapters")
 app.include_router(sections.router, prefix="/api/sections")
 app.include_router(tags.router, prefix="/api/tags")
 app.include_router(meta.router, prefix="/api/meta")
+app.include_router(ingest.router, prefix="/api/ingest")
+app.include_router(knowledge.router, prefix="/api/knowledge-points")
 app.include_router(storage.router, prefix="/api/storage")
 app.include_router(office.router, prefix="/api/office")
 app.include_router(resources.router, prefix="/api/resources")
@@ -161,6 +177,7 @@ RUNTIME_SCHEMA_PATCHES = [
     "ALTER TABLE resources ADD COLUMN IF NOT EXISTS ai_updated_at TIMESTAMPTZ;",
     "ALTER TABLE resources ADD COLUMN IF NOT EXISTS volume_code VARCHAR(20);",
     "ALTER TABLE resources ADD COLUMN IF NOT EXISTS source_filename VARCHAR(255);",
+    "ALTER TABLE resources ADD COLUMN IF NOT EXISTS external_url VARCHAR(1024);",
     "ALTER TABLE resources ADD COLUMN IF NOT EXISTS title_auto_generated BOOLEAN NOT NULL DEFAULT TRUE;",
     "ALTER TABLE resources ADD COLUMN IF NOT EXISTS rename_version VARCHAR(20) NOT NULL DEFAULT 'v1';",
     "ALTER TABLE resources ADD COLUMN IF NOT EXISTS is_trashed BOOLEAN NOT NULL DEFAULT FALSE;",
@@ -173,6 +190,7 @@ RUNTIME_SCHEMA_PATCHES = [
     "CREATE INDEX IF NOT EXISTS idx_resources_is_trashed ON resources(is_trashed);",
     "CREATE INDEX IF NOT EXISTS idx_resources_object_key ON resources(object_key);",
     "CREATE INDEX IF NOT EXISTS idx_resources_status_trashed_chapter_section_format_updated ON resources(status, is_trashed, chapter_id, section_id, file_format, updated_at DESC);",
+    "CREATE INDEX IF NOT EXISTS idx_resources_external_url ON resources(external_url);",
     "CREATE INDEX IF NOT EXISTS idx_resources_tags_gin ON resources USING GIN(tags);",
     "CREATE INDEX IF NOT EXISTS idx_resources_ai_tags_gin ON resources USING GIN(ai_tags);",
     "CREATE INDEX IF NOT EXISTS idx_resources_search_tsv_gin ON resources USING GIN(to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,'') || ' ' || coalesce(ai_summary,'')));",
@@ -277,6 +295,88 @@ RUNTIME_SCHEMA_PATCHES = [
     "CREATE INDEX IF NOT EXISTS idx_trash_items_expires_at ON trash_items(expires_at);",
     "CREATE INDEX IF NOT EXISTS idx_trash_items_resource_id ON trash_items(resource_id);",
     "CREATE INDEX IF NOT EXISTS idx_trash_items_original_key ON trash_items(original_key);",
+    """
+    CREATE TABLE IF NOT EXISTS source_documents (
+      id SERIAL PRIMARY KEY,
+      source_type VARCHAR(20) NOT NULL DEFAULT 'url',
+      url VARCHAR(1024),
+      object_key VARCHAR(255),
+      title VARCHAR(255) NOT NULL,
+      summary TEXT,
+      tags TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+      fingerprint VARCHAR(128) NOT NULL UNIQUE,
+      stage VARCHAR(30) NOT NULL DEFAULT 'senior',
+      subject VARCHAR(50) NOT NULL DEFAULT '物理',
+      chapter_id INTEGER REFERENCES chapters(id),
+      confidence DOUBLE PRECISION,
+      status VARCHAR(30) NOT NULL DEFAULT 'pending_review',
+      published_at TIMESTAMPTZ,
+      created_by INTEGER REFERENCES users(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_source_documents_scope ON source_documents(stage, subject, status, updated_at DESC);",
+    "CREATE INDEX IF NOT EXISTS idx_source_documents_chapter_id ON source_documents(chapter_id);",
+    """
+    CREATE TABLE IF NOT EXISTS ingest_jobs (
+      id SERIAL PRIMARY KEY,
+      source_type VARCHAR(20) NOT NULL DEFAULT 'url',
+      url VARCHAR(1024),
+      source_document_id INTEGER REFERENCES source_documents(id),
+      stage VARCHAR(30) NOT NULL DEFAULT 'senior',
+      subject VARCHAR(50) NOT NULL DEFAULT '物理',
+      status VARCHAR(30) NOT NULL DEFAULT 'queued',
+      progress DOUBLE PRECISION NOT NULL DEFAULT 0,
+      detail TEXT,
+      created_by INTEGER REFERENCES users(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_ingest_jobs_scope ON ingest_jobs(stage, subject, status, created_at DESC);",
+    """
+    CREATE TABLE IF NOT EXISTS knowledge_points (
+      id SERIAL PRIMARY KEY,
+      chapter_id INTEGER NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
+      kp_code VARCHAR(80) NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      aliases TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+      description TEXT,
+      difficulty VARCHAR(30),
+      prerequisite_level DOUBLE PRECISION NOT NULL DEFAULT 0,
+      status VARCHAR(30) NOT NULL DEFAULT 'draft',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT uq_knowledge_points_chapter_code UNIQUE(chapter_id, kp_code)
+    );
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_knowledge_points_chapter ON knowledge_points(chapter_id, status);",
+    """
+    CREATE TABLE IF NOT EXISTS knowledge_edges (
+      id SERIAL PRIMARY KEY,
+      src_kp_id INTEGER NOT NULL REFERENCES knowledge_points(id) ON DELETE CASCADE,
+      dst_kp_id INTEGER NOT NULL REFERENCES knowledge_points(id) ON DELETE CASCADE,
+      edge_type VARCHAR(40) NOT NULL,
+      strength DOUBLE PRECISION NOT NULL DEFAULT 0.5,
+      evidence_count INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT uq_knowledge_edges_triple UNIQUE(src_kp_id, dst_kp_id, edge_type)
+    );
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_knowledge_edges_src ON knowledge_edges(src_kp_id);",
+    "CREATE INDEX IF NOT EXISTS idx_knowledge_edges_dst ON knowledge_edges(dst_kp_id);",
+    """
+    CREATE TABLE IF NOT EXISTS kp_evidences (
+      id SERIAL PRIMARY KEY,
+      kp_id INTEGER NOT NULL REFERENCES knowledge_points(id) ON DELETE CASCADE,
+      source_doc_id INTEGER NOT NULL REFERENCES source_documents(id) ON DELETE CASCADE,
+      snippet TEXT NOT NULL,
+      score DOUBLE PRECISION NOT NULL DEFAULT 0.5,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_kp_evidences_kp ON kp_evidences(kp_id);",
     """
     CREATE TABLE IF NOT EXISTS rag_workspaces (
       id SERIAL PRIMARY KEY,
