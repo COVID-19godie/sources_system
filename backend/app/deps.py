@@ -3,6 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app import models
+from app.core.config import settings
 from app.core.security import decode_access_token
 from app.core.db_read_write import ReadSessionLocal, WriteSessionLocal
 
@@ -51,6 +52,19 @@ def get_current_user_optional(
 def get_current_user(
     current_user: models.User | None = Depends(get_current_user_optional),
 ) -> models.User:
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+        )
+    return current_user
+
+
+def get_preview_read_user(
+    current_user: models.User | None = Depends(get_current_user_optional),
+) -> models.User | None:
+    if settings.LOCAL_PREVIEW_MODE:
+        return current_user
     if current_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

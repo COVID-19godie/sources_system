@@ -1,3 +1,6 @@
+from pathlib import Path
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +14,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+psycopg://edu_user:edu_pass@db-primary:5432/edu_demo"
     DATABASE_WRITE_URL: str | None = None
     DATABASE_READ_URL: str | None = None
+    LOCAL_PREVIEW_MODE: bool = False
+    LOCAL_PREVIEW_DB_PATH: str = "preview.db"
 
     JWT_SECRET_KEY: str = "change-this-in-production"
     JWT_ALGORITHM: str = "HS256"
@@ -18,7 +23,12 @@ class Settings(BaseSettings):
 
     ADMIN_EMAIL: str = "admin"
     ADMIN_PASSWORD: str = "admin123"
-    CORS_ORIGINS: str = "http://localhost:8080,http://localhost:5173,http://localhost:3000"
+    CORS_ORIGINS: str = (
+        "http://localhost:8080,"
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "http://localhost:4173,http://127.0.0.1:4173,"
+        "http://localhost:3000"
+    )
 
     MINIO_ENDPOINT: str = "minio:9000"
     MINIO_ACCESS_KEY: str = "minioadmin"
@@ -93,5 +103,19 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+if settings.LOCAL_PREVIEW_MODE:
+    backend_root = Path(__file__).resolve().parents[2]
+    default_preview_db = backend_root / settings.LOCAL_PREVIEW_DB_PATH
+    preview_db_url = f"sqlite:///{default_preview_db.as_posix()}"
+    if not os.getenv("DATABASE_URL"):
+        settings.DATABASE_URL = preview_db_url
+    if not os.getenv("DATABASE_WRITE_URL"):
+        settings.DATABASE_WRITE_URL = settings.DATABASE_URL
+    if not os.getenv("DATABASE_READ_URL"):
+        settings.DATABASE_READ_URL = settings.DATABASE_URL
+    settings.ONLYOFFICE_ENABLED = False
+    settings.SEMANTIC_PGVECTOR_ENABLED = False
+    settings.STORAGE_RECONCILE_INTERVAL_SECONDS = 0
+    settings.TRASH_PURGE_INTERVAL_SECONDS = 0
 settings.DATABASE_WRITE_URL = settings.resolved_database_write_url
 settings.DATABASE_READ_URL = settings.resolved_database_read_url

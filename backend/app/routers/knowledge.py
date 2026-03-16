@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app import models, schemas
-from app.deps import get_current_user, get_db_read, get_db_write
+from app.deps import get_current_user, get_db_read, get_db_write, get_preview_read_user
 
 
 router = APIRouter(tags=["knowledge"])
@@ -24,7 +24,7 @@ def list_knowledge_points(
     status_filter: str | None = Query(default=None, alias="status"),
     limit: int = Query(default=500, ge=1, le=2000),
     db: Session = Depends(get_db_read),
-    _: models.User = Depends(get_current_user),
+    _: models.User | None = Depends(get_preview_read_user),
 ):
     if (chapter_mode or "").strip().lower() == "general":
         return []

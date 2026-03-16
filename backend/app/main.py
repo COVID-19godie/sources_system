@@ -9,7 +9,7 @@ from sqlalchemy import text
 
 from app import models
 from app.core.config import settings
-from app.core import rag_sync, trash_service
+from app.core import local_preview, rag_sync, trash_service
 from app.core.security import get_password_hash
 from app.core.db_read_write import WriteSessionLocal, write_engine
 from app.db import Base
@@ -589,6 +589,10 @@ RUNTIME_SCHEMA_PATCHES = [
 ]
 
 
+def _is_sqlite_database() -> bool:
+    return settings.DATABASE_WRITE_URL.startswith("sqlite")
+
+
 def _run_reconcile_once() -> None:
     db = WriteSessionLocal()
     try:
@@ -647,41 +651,50 @@ def _start_scheduler_thread(name: str, interval_seconds: int, task) -> None:
 def startup_event():
     Base.metadata.create_all(bind=write_engine)
 
-    with write_engine.begin() as conn:
-        for statement in RUNTIME_SCHEMA_PATCHES:
-            conn.execute(text(statement))
+    if not _is_sqlite_database():
+        with write_engine.begin() as conn:
+            for statement in RUNTIME_SCHEMA_PATCHES:
+                conn.execute(text(statement))
 
     db = WriteSessionLocal()
     try:
         admin = db.query(models.User).filter(models.User.email == settings.ADMIN_EMAIL).first()
         if admin is None:
-            db.add(
-                models.User(
-                    email=settings.ADMIN_EMAIL,
-                    hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
-                    role=models.UserRole.admin,
-                )
+            admin = models.User(
+                email=settings.ADMIN_EMAIL,
+                hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
+                role=models.UserRole.admin,
             )
+            db.add(admin)
+            db.commit()
+        elif settings.LOCAL_PREVIEW_MODE:
+            admin.hashed_password = get_password_hash(settings.ADMIN_PASSWORD)
+            admin.role = models.UserRole.admin
+            db.add(admin)
             db.commit()
 
         sync_stats = chapters.ensure_demo_chapters(db)
         logger.info("chapter sync on startup: strict=%s stats=%s", settings.STRICT_PEP_CATALOG, sync_stats)
         sections.ensure_default_sections(db)
         tags.ensure_default_tags(db)
+        if settings.LOCAL_PREVIEW_MODE:
+            preview_stats = local_preview.seed_local_preview_data(db)
+            logger.info("local preview seed complete: %s", preview_stats)
     finally:
         db.close()
 
-    _scheduler_stop.clear()
-    _start_scheduler_thread(
-        "storage-reconcile",
-        settings.STORAGE_RECONCILE_INTERVAL_SECONDS,
-        _run_reconcile_once,
-    )
-    _start_scheduler_thread(
-        "trash-purge",
-        settings.TRASH_PURGE_INTERVAL_SECONDS,
-        _run_purge_once,
-    )
+    if not settings.LOCAL_PREVIEW_MODE:
+        _scheduler_stop.clear()
+        _start_scheduler_thread(
+            "storage-reconcile",
+            settings.STORAGE_RECONCILE_INTERVAL_SECONDS,
+            _run_reconcile_once,
+        )
+        _start_scheduler_thread(
+            "trash-purge",
+            settings.TRASH_PURGE_INTERVAL_SECONDS,
+            _run_purge_once,
+        )
 
 
 @app.on_event("shutdown")
@@ -698,4 +711,5 @@ def health():
         "status": "ok",
         "db_write": settings.DATABASE_WRITE_URL,
         "db_read": settings.DATABASE_READ_URL,
+        "local_preview_mode": settings.LOCAL_PREVIEW_MODE,
     }

@@ -133,6 +133,23 @@ class VolumeChapterGroupOut(BaseModel):
     chapters: list[ChapterOut]
 
 
+class ChapterTaxonomySectionOut(BaseModel):
+    key: str
+    label: str
+    items: list[str] = Field(default_factory=list)
+
+
+class ChapterTaxonomyOut(BaseModel):
+    chapter_id: int
+    chapter_code: str
+    chapter_title: str
+    volume_code: str
+    volume_name: str
+    source_files: list[str] = Field(default_factory=list)
+    sections: list[ChapterTaxonomySectionOut] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+
+
 class SectionCreateRequest(BaseModel):
     stage: str
     subject: str
@@ -928,6 +945,51 @@ class RagGraphEmbeddingOut(BaseModel):
     generated_at: datetime
     nodes: list[RagGraphEmbeddingNodeOut]
     edges: list[RagGraphEdgeOut]
+
+
+class RagMapPositionOut(BaseModel):
+    x: float
+    y: float
+
+
+class RagMapNodeOut(BaseModel):
+    id: str
+    label: str
+    keyword_label: str | None = None
+    node_type: str
+    layer: int
+    parent_id: str | None = None
+    sector_key: str | None = None
+    display_priority: int = 0
+    child_count: int = 0
+    is_expandable: bool = False
+    collapsed: bool = False
+    min_zoom_level: int = 0
+    position: RagMapPositionOut
+    source_id: int | None = None
+    resource_id: int | None = None
+    canonical_key: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class RagMapEdgeOut(BaseModel):
+    source: str
+    target: str
+    edge_type: str
+    weight: float = 1.0
+    min_zoom_level: int = 0
+
+
+class RagMapResponse(BaseModel):
+    workspace_id: int
+    generated_at: datetime
+    root: RagMapNodeOut
+    visible_nodes: list[RagMapNodeOut]
+    visible_edges: list[RagMapEdgeOut]
+    zoom_level: int = 0
+    focus_id: str | None = None
+    breadcrumbs: list[dict[str, Any]] = Field(default_factory=list)
+    stats: dict[str, Any] = Field(default_factory=dict)
 
 
 class RagQaLogOut(BaseModel):

@@ -330,6 +330,10 @@ export async function fetchUploadOptions(options = {}) {
   return apiRequest(`/api/meta/upload-options?${params.toString()}`, { token });
 }
 
+export async function fetchChapterTaxonomy(chapterId, token = "") {
+  return apiRequest(`/api/meta/chapters/${chapterId}/taxonomy`, { token });
+}
+
 export async function submitIngestUrl(payload, token) {
   return apiRequest("/api/ingest/url", {
     method: "POST",
@@ -575,6 +579,28 @@ export async function getRagWorkspaceGraph(workspaceId, options = {}) {
     params.set("q", q.trim());
   }
   return apiRequest(`/api/rag/workspaces/${workspaceId}/graph?${params.toString()}`, { token });
+}
+
+export async function getRagWorkspaceMap(workspaceId, options = {}) {
+  const {
+    token = "",
+    q = "",
+    limit = 240,
+    scope = "public",
+    zoomLevel = 0,
+    focusId = ""
+  } = options;
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  params.set("scope", scope);
+  params.set("zoom_level", String(zoomLevel));
+  if (q.trim()) {
+    params.set("q", q.trim());
+  }
+  if (focusId) {
+    params.set("focus_id", String(focusId));
+  }
+  return apiRequest(`/api/rag/workspaces/${workspaceId}/map?${params.toString()}`, { token });
 }
 
 export async function getRagBootstrapJob(workspaceId, jobId, token) {

@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app import models, schemas
-from app.deps import get_current_user, get_db_read
+from app.deps import get_current_user, get_db_read, get_preview_read_user
+from app.core.physics_taxonomy import find_chapter_taxonomy
 
 
 router = APIRouter(tags=["meta"])
@@ -23,7 +24,7 @@ def upload_options(
     stage: str = Query(default="senior"),
     subject: str = Query(default="物理"),
     db: Session = Depends(get_db_read),
-    _: models.User = Depends(get_current_user),
+    _: models.User | None = Depends(get_preview_read_user),
 ):
     chapters = (
         db.query(models.Chapter)
@@ -96,4 +97,49 @@ def upload_options(
         tags=[schemas.ResourceTagOut.model_validate(item) for item in tags],
         difficulties=DEFAULT_DIFFICULTIES,
         quick_queries=DEFAULT_QUICK_QUERIES,
+    )
+
+
+@router.get("/chapters/{chapter_id}/taxonomy", response_model=schemas.ChapterTaxonomyOut)
+def chapter_taxonomy(
+    chapter_id: int,
+    db: Session = Depends(get_db_read),
+    _: models.User | None = Depends(get_preview_read_user),
+):
+    chapter = db.query(models.Chapter).filter(models.Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
+    taxonomy = find_chapter_taxonomy(
+        chapter.title,
+        chapter_code=chapter.chapter_code,
+        chapter_keywords=chapter.chapter_keywords or [],
+    )
+    sections: list[schemas.ChapterTaxonomySectionOut] = []
+    if taxonomy:
+        for key, label, items in (
+            ("knowledge_tags", "知识点", taxonomy.knowledge_tags),
+            ("focus_tags", "重难点", taxonomy.focus_tags),
+            ("exam_tags", "考点", taxonomy.exam_tags),
+            ("problem_tags", "题组", taxonomy.problem_tags),
+            ("experiment_tags", "实验", taxonomy.experiment_tags),
+        ):
+            if items:
+                sections.append(
+                    schemas.ChapterTaxonomySectionOut(
+                        key=key,
+                        label=label,
+                        items=items[:20],
+                    )
+                )
+
+    return schemas.ChapterTaxonomyOut(
+        chapter_id=chapter.id,
+        chapter_code=chapter.chapter_code,
+        chapter_title=chapter.title,
+        volume_code=chapter.volume_code,
+        volume_name=chapter.volume_name,
+        source_files=taxonomy.source_files if taxonomy else [],
+        sections=sections,
+        tags=taxonomy.tags[:24] if taxonomy else [],
     )

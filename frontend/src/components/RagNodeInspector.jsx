@@ -1,7 +1,9 @@
 function renderNodeType(type) {
+  if (type === "root") return "总览";
+  if (type === "sector") return "学科区";
   if (type === "chapter") return "章节";
   if (type === "section") return "板块";
-  if (type === "format") return "格式分层";
+  if (type === "format") return "格式层";
   if (type === "resource") return "资源";
   if (type === "knowledge_point") return "知识点";
   if (type === "formula") return "公式";
@@ -16,10 +18,26 @@ function renderTags(tags) {
   }
   return (
     <div className="rag-node-tags">
-      {tags.slice(0, 8).map((tag) => (
+      {tags.slice(0, 12).map((tag) => (
         <span key={tag}>{tag}</span>
       ))}
     </div>
+  );
+}
+
+function TaxonomyGroup({ title, items }) {
+  if (!Array.isArray(items) || !items.length) {
+    return null;
+  }
+  return (
+    <section className="rag-taxonomy-group">
+      <h5>{title}</h5>
+      <div className="rag-node-tags">
+        {items.map((item) => (
+          <span key={`${title}-${item}`}>{item}</span>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -29,13 +47,14 @@ export default function RagNodeInspector({
   loadingLinks = false,
   variants = [],
   variantsMeta = null,
-  loadingVariants = false
+  loadingVariants = false,
+  onExpandRelated = null,
 }) {
   if (!node) {
     return (
       <section className="rag-inspector card">
         <h3>节点详情</h3>
-        <p className="hint">点击画布节点查看关联资源</p>
+        <p className="hint">点击地图中的节点后，这里会显示当前路径、标签、资源入口和关联信息。</p>
       </section>
     );
   }
@@ -53,34 +72,62 @@ export default function RagNodeInspector({
       <h3>节点详情</h3>
       <h4 title={node.label}>{node.keyword_label || node.label}</h4>
       <p className="hint">类型：{renderNodeType(node.node_type)}</p>
-      {node.resource_id ? <p className="hint">资源ID：{node.resource_id}</p> : null}
+      {node.resource_id ? <p className="hint">资源 ID：{node.resource_id}</p> : null}
       {node.meta?.difficulty ? <p className="hint">难度：{node.meta.difficulty}</p> : null}
       {node.meta?.file_format ? <p className="hint">格式：{node.meta.file_format}</p> : null}
       {node.meta?.visibility ? <p className="hint">可见性：{node.meta.visibility}</p> : null}
+      {node.meta?.sector_label ? <p className="hint">学科区：{node.meta.sector_label}</p> : null}
+      {node.meta?.chapter_title ? <p className="hint">章节：{node.meta.chapter_title}</p> : null}
+      {node.meta?.path ? <p className="hint">路径：{node.meta.path}</p> : null}
+      {node.meta?.taxonomy_source ? <p className="hint">标签来源：{node.meta.taxonomy_source}</p> : null}
 
       {node.meta?.summary ? <p className="rag-node-summary">{node.meta.summary}</p> : null}
       {node.meta?.description ? <p className="rag-node-summary">{node.meta.description}</p> : null}
+      {node.meta?.related_summary ? <p className="rag-node-summary">{node.meta.related_summary}</p> : null}
       {renderTags(node.meta?.tags)}
+
+      {node.node_type === "sector" ? (
+        <section className="rag-taxonomy-metrics">
+          <div className="rag-taxonomy-metric">
+            <strong>{node.meta?.knowledge_tag_count || 0}</strong>
+            <span>知识点标签</span>
+          </div>
+          <div className="rag-taxonomy-metric">
+            <strong>{node.meta?.exam_point_count || 0}</strong>
+            <span>考点</span>
+          </div>
+          <div className="rag-taxonomy-metric">
+            <strong>{node.meta?.experiment_count || 0}</strong>
+            <span>实验</span>
+          </div>
+        </section>
+      ) : null}
+
+      <TaxonomyGroup title="知识点" items={node.meta?.knowledge_tags} />
+      <TaxonomyGroup title="重难点" items={node.meta?.focus_tags} />
+      <TaxonomyGroup title="考点" items={node.meta?.exam_tags} />
+      <TaxonomyGroup title="题组" items={node.meta?.problem_tags} />
+      <TaxonomyGroup title="实验" items={node.meta?.experiment_tags} />
 
       <div className="rag-open-actions">
         {openPath ? (
-          <a
-            className="button-link"
-            href={openPath}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <a className="button-link" href={openPath} target="_blank" rel="noopener noreferrer">
             打开资源
           </a>
         ) : (
           <button type="button" className="ghost" disabled>
-            该节点无直接资源
+            该节点暂时无直达资源
           </button>
         )}
         {downloadOriginalPath ? (
           <a className="button-link" href={downloadOriginalPath} target="_blank" rel="noopener noreferrer">
             下载原件
           </a>
+        ) : null}
+        {typeof onExpandRelated === "function" && node.node_type !== "resource" && (node.meta?.resource_count || 0) > 0 ? (
+          <button type="button" className="ghost" onClick={() => onExpandRelated(node)}>
+            展开更多资源
+          </button>
         ) : null}
       </div>
 
@@ -90,52 +137,59 @@ export default function RagNodeInspector({
         {variantsMeta?.autoOpenVariantKind ? <p className="hint">默认打开策略：{variantsMeta.autoOpenVariantKind}</p> : null}
         {loadingVariants ? <p className="hint">变体加载中...</p> : null}
         {!loadingVariants && !variants.length ? <p className="hint">暂无可用变体</p> : null}
-        {!loadingVariants ? variants.map((item) => (
-          <div key={`${item.source_id}-${item.variant_kind || "variant"}`} className="rag-linked-item">
-            <div>
-              <strong>{item.title}</strong>
-              <div className="hint">
-                {item.variant_kind || "variant"} · {item.file_format || "-"} · {item.visibility}
+        {!loadingVariants
+          ? variants.map((item) => (
+              <div key={`${item.source_id}-${item.variant_kind || "variant"}`} className="rag-linked-item">
+                <div>
+                  <strong>{item.title}</strong>
+                  <div className="hint">
+                    {item.variant_kind || "variant"} / {item.file_format || "-"} / {item.visibility}
+                  </div>
+                </div>
+                <div className="row-inline">
+                  {item.open_url ? (
+                    <a className="button-link" href={item.open_url} target="_blank" rel="noopener noreferrer">
+                      打开
+                    </a>
+                  ) : (
+                    <button type="button" className="ghost" disabled>
+                      不可打开
+                    </button>
+                  )}
+                  {item.download_url ? (
+                    <a className="button-link" href={item.download_url} target="_blank" rel="noopener noreferrer">
+                      下载
+                    </a>
+                  ) : null}
+                </div>
               </div>
-            </div>
-            <div className="row-inline">
-              {item.open_url ? (
-                <a className="button-link" href={item.open_url} target="_blank" rel="noopener noreferrer">打开</a>
-              ) : (
-                <button type="button" className="ghost" disabled>不可打开</button>
-              )}
-              {item.download_url ? (
-                <a className="button-link" href={item.download_url} target="_blank" rel="noopener noreferrer">下载</a>
-              ) : null}
-            </div>
-          </div>
-        )) : null}
+            ))
+          : null}
       </section>
 
       <section className="rag-linked-list">
         <h4>关联资源 Top5</h4>
         {loadingLinks ? <p className="hint">加载中...</p> : null}
         {!loadingLinks && !linkedResources.length ? <p className="hint">暂无关联资源</p> : null}
-        {!loadingLinks ? linkedResources.map((item) => (
-          <div key={`${item.source_id}-${item.resource_id || "none"}`} className="rag-linked-item">
-            <div>
-              <strong>{item.keyword_title}</strong>
-              <div className="hint">相关度 {Number(item.score || 0).toFixed(3)}</div>
-            </div>
-            {item.is_openable && item.open_path ? (
-              <a
-                className="button-link"
-                href={item.open_path}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                打开
-              </a>
-            ) : (
-              <button type="button" className="ghost" disabled>{item.message || "不可打开"}</button>
-            )}
-          </div>
-        )) : null}
+        {!loadingLinks
+          ? linkedResources.map((item) => (
+              <div key={`${item.source_id}-${item.resource_id || "none"}`} className="rag-linked-item">
+                <div>
+                  <strong>{item.keyword_title}</strong>
+                  <div className="hint">相关度 {Number(item.score || 0).toFixed(3)}</div>
+                </div>
+                {item.is_openable && item.open_path ? (
+                  <a className="button-link" href={item.open_path} target="_blank" rel="noopener noreferrer">
+                    打开
+                  </a>
+                ) : (
+                  <button type="button" className="ghost" disabled>
+                    {item.message || "不可打开"}
+                  </button>
+                )}
+              </div>
+            ))
+          : null}
       </section>
     </section>
   );

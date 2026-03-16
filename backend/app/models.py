@@ -20,6 +20,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
 
 
+def _string_list_type():
+    return ARRAY(String).with_variant(JSON, "sqlite")
+
+
 class UserRole(str, enum.Enum):
     teacher = "teacher"
     admin = "admin"
@@ -88,7 +92,7 @@ class Chapter(Base):
     volume_order: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
     chapter_order: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
     chapter_code: Mapped[str] = mapped_column(String(50), nullable=False)
-    chapter_keywords: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    chapter_keywords: Mapped[list[str]] = mapped_column(_string_list_type(), default=list, nullable=False)
     index_embedding_json: Mapped[list[float] | None] = mapped_column(JSON, nullable=True)
     index_embedding_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
     index_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -197,7 +201,7 @@ class Resource(Base):
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     subject: Mapped[str | None] = mapped_column(String(50), nullable=True)
     grade: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    tags: Mapped[list[str]] = mapped_column(_string_list_type(), default=list, nullable=False)
     status: Mapped[ResourceStatus] = mapped_column(
         Enum(ResourceStatus, name="resource_status", create_constraint=True),
         default=ResourceStatus.pending,
@@ -207,7 +211,7 @@ class Resource(Base):
     file_format: Mapped[str] = mapped_column(String(30), default="other", nullable=False)
     difficulty: Mapped[str | None] = mapped_column(String(30), nullable=True)
     ai_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
-    ai_tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    ai_tags: Mapped[list[str]] = mapped_column(_string_list_type(), default=list, nullable=False)
     embedding_json: Mapped[list[float] | None] = mapped_column(JSON, nullable=True)
     embedding_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
     ai_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -317,7 +321,7 @@ class SourceDocument(Base):
     content_chars: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     content_truncated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    tags: Mapped[list[str]] = mapped_column(_string_list_type(), default=list, nullable=False)
     content_embedding_json: Mapped[list[float] | None] = mapped_column(JSON, nullable=True)
     content_embedding_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
     content_indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -379,7 +383,7 @@ class KnowledgePoint(Base):
     chapter_id: Mapped[int] = mapped_column(ForeignKey("chapters.id"), nullable=False, index=True)
     kp_code: Mapped[str] = mapped_column(String(80), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    aliases: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    aliases: Mapped[list[str]] = mapped_column(_string_list_type(), default=list, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     difficulty: Mapped[str | None] = mapped_column(String(30), nullable=True)
     prerequisite_level: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
@@ -545,7 +549,7 @@ class RagSource(Base):
     object_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     file_format: Mapped[str | None] = mapped_column(String(30), nullable=True)
     summary_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    tags: Mapped[list[str]] = mapped_column(_string_list_type(), default=list, nullable=False)
     embedding_json: Mapped[list[float] | None] = mapped_column(JSON, nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="ready", nullable=False)
     published_resource_id: Mapped[int | None] = mapped_column(ForeignKey("resources.id"), nullable=True)
@@ -606,7 +610,7 @@ class RagEntity(Base):
     workspace_id: Mapped[int] = mapped_column(ForeignKey("rag_workspaces.id"), nullable=False, index=True)
     entity_type: Mapped[str] = mapped_column(String(40), nullable=False)
     canonical_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    aliases: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    aliases: Mapped[list[str]] = mapped_column(_string_list_type(), default=list, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     confidence: Mapped[float] = mapped_column(Float, default=0.8, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -739,8 +743,8 @@ class RagQaLog(Base):
     question: Mapped[str] = mapped_column(Text, nullable=False)
     answer: Mapped[str] = mapped_column(Text, nullable=False)
     citations: Mapped[list[dict]] = mapped_column(JSON, default=list, nullable=False)
-    highlight_nodes: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
-    highlight_edges: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    highlight_nodes: Mapped[list[str]] = mapped_column(_string_list_type(), default=list, nullable=False)
+    highlight_edges: Mapped[list[str]] = mapped_column(_string_list_type(), default=list, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

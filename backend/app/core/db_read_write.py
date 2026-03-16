@@ -5,6 +5,12 @@ from app.core.config import settings
 
 
 def _engine_options() -> dict:
+    if settings.DATABASE_WRITE_URL.startswith("sqlite"):
+        return {
+            "connect_args": {
+                "check_same_thread": False,
+            },
+        }
     return {
         "pool_pre_ping": True,
         "pool_size": max(1, settings.DB_POOL_SIZE),

@@ -18,6 +18,8 @@ from app.core import ai_service, rag_cache, rag_sync, resource_variants, semanti
 from app.core.config import settings
 from app.core.db_read_write import WriteSessionLocal
 from app.core.file_access_tokens import build_storage_access_urls
+from app.core.map_sector import infer_map_sector
+from app.core.physics_taxonomy import find_chapter_taxonomy, match_kp_taxonomy_labels
 from app.core import storage as storage_service
 from app.deps import get_current_user, get_db_read, get_db_write
 from app.routers.resources import to_resource_out
@@ -66,6 +68,46 @@ FORMAT_GROUP_LABELS = {
     "image": "图片",
     "audio": "音频",
     "other": "其他",
+}
+
+
+MAP_SECTOR_ORDER = [
+    "mechanics",
+    "electromagnetism",
+    "thermodynamics",
+    "optics_wave",
+    "modern_physics",
+]
+
+MAP_SECTOR_LABELS = {
+    "mechanics": "力学",
+    "electromagnetism": "电磁学",
+    "thermodynamics": "热学",
+    "optics_wave": "光学·波动",
+    "modern_physics": "近代物理",
+}
+
+MAP_SECTOR_COLORS = {
+    "mechanics": "#d96459",
+    "electromagnetism": "#3f78c8",
+    "thermodynamics": "#ea6a4b",
+    "optics_wave": "#7a67d8",
+    "modern_physics": "#7b59b5",
+}
+
+MAP_SECTOR_LAYOUTS = {
+    "mechanics": (-270.0, -70.0),
+    "electromagnetism": (0.0, -185.0),
+    "thermodynamics": (270.0, -70.0),
+    "optics_wave": (-165.0, 165.0),
+    "modern_physics": (165.0, 165.0),
+}
+
+MAP_ROOT_ID = "root:senior-physics"
+MAP_NODE_LIMITS = {
+    1: 16,
+    2: 28,
+    3: 10,
 }
 
 
@@ -1081,6 +1123,626 @@ def _build_workspace_graph(
             similarity_edges=similarity_edges,
             generated_at=datetime.now(timezone.utc),
         ),
+    )
+
+
+def _normalize_text_for_sector(value: str | None) -> str:
+    return re.sub(r"\s+", "", (value or "").strip().lower())
+
+
+def _infer_map_sector(*values: str | None, legacy_sector: str | None = None) -> str:
+    return infer_map_sector(*values, legacy_sector=legacy_sector)
+
+
+def _map_position(x: float, y: float) -> schemas.RagMapPositionOut:
+    return schemas.RagMapPositionOut(x=round(x, 3), y=round(y, 3))
+
+
+def _make_map_node(
+    *,
+    node_id: str,
+    label: str,
+    node_type: str,
+    layer: int,
+    position: tuple[float, float],
+    parent_id: str | None = None,
+    sector_key: str | None = None,
+    keyword_label: str | None = None,
+    display_priority: int = 0,
+    child_count: int = 0,
+    is_expandable: bool = False,
+    collapsed: bool = False,
+    min_zoom_level: int = 0,
+    source_id: int | None = None,
+    resource_id: int | None = None,
+    canonical_key: str | None = None,
+    meta: dict | None = None,
+) -> schemas.RagMapNodeOut:
+    return schemas.RagMapNodeOut(
+        id=node_id,
+        label=label,
+        keyword_label=keyword_label,
+        node_type=node_type,
+        layer=layer,
+        parent_id=parent_id,
+        sector_key=sector_key,
+        display_priority=display_priority,
+        child_count=child_count,
+        is_expandable=is_expandable,
+        collapsed=collapsed,
+        min_zoom_level=min_zoom_level,
+        position=_map_position(*position),
+        source_id=source_id,
+        resource_id=resource_id,
+        canonical_key=canonical_key,
+        meta=meta or {},
+    )
+
+
+def _append_map_edge(
+    edge_map: dict[tuple[str, str, str], schemas.RagMapEdgeOut],
+    *,
+    source: str,
+    target: str,
+    edge_type: str,
+    weight: float = 1.0,
+    min_zoom_level: int = 0,
+) -> None:
+    key = (source, target, edge_type)
+    if key in edge_map:
+        return
+    edge_map[key] = schemas.RagMapEdgeOut(
+        source=source,
+        target=target,
+        edge_type=edge_type,
+        weight=round(weight, 4),
+        min_zoom_level=min_zoom_level,
+    )
+
+
+def _build_taxonomy_summary(meta: dict[str, object]) -> str | None:
+    parts: list[str] = []
+    for label, key in (
+        ("知识点", "knowledge_tags"),
+        ("重难点", "focus_tags"),
+        ("考点", "exam_tags"),
+        ("题组", "problem_tags"),
+        ("实验", "experiment_tags"),
+    ):
+        items = [str(item) for item in (meta.get(key) or []) if item]
+        if not items:
+            continue
+        parts.append(f"{label}: {'、'.join(items[:3])}")
+    if not parts:
+        return None
+    return "；".join(parts[:3])
+
+
+def _score_resource_match(
+    *,
+    kp_name: str,
+    kp_aliases: list[str],
+    kp_description: str | None,
+    resource_node: schemas.RagGraphNodeOut,
+    sector_key: str,
+) -> float:
+    title = (resource_node.label or "").lower()
+    summary = str(resource_node.meta.get("summary") or "").lower()
+    tags = [str(item).lower() for item in (resource_node.meta.get("tags") or [])]
+    format_bonus = 0.15 if (resource_node.meta.get("format_group") == "simulation") else 0.0
+    score = 0.0
+
+    for token in [kp_name, *(kp_aliases or [])]:
+        normalized = _normalize_text_for_sector(token)
+        if not normalized or len(normalized) < 2:
+            continue
+        if normalized in _normalize_text_for_sector(resource_node.label):
+            score += 1.8
+        if normalized in _normalize_text_for_sector(summary):
+            score += 1.0
+        if any(normalized in _normalize_text_for_sector(tag) for tag in tags):
+            score += 2.2
+
+    if kp_description:
+        for raw_part in re.split(r"[，。；、,; ]+", kp_description):
+            normalized = _normalize_text_for_sector(raw_part)
+            if len(normalized) < 2:
+                continue
+            if normalized in _normalize_text_for_sector(summary):
+                score += 0.45
+                break
+
+    if resource_node.meta.get("sector_key") == sector_key:
+        score += 0.35
+
+    return score + format_bonus
+
+
+def _build_workspace_map(
+    db: Session,
+    workspace: models.RagWorkspace,
+    *,
+    q: str | None,
+    limit: int,
+    scope: str,
+    zoom_level: int,
+    focus_id: str | None,
+    access_user_id: int | None = None,
+) -> schemas.RagMapResponse:
+    base_graph = _build_workspace_graph(
+        db,
+        workspace,
+        q=q,
+        limit=limit,
+        scope=scope,
+        include_format_nodes=False,
+        dedupe=True,
+        include_variants=True,
+        access_user_id=access_user_id,
+    )
+
+    chapter_rows = (
+        db.query(models.Chapter)
+        .filter(
+            models.Chapter.stage == workspace.stage,
+            models.Chapter.subject == workspace.subject,
+            models.Chapter.is_enabled.is_(True),
+        )
+        .order_by(models.Chapter.volume_order.asc(), models.Chapter.chapter_order.asc(), models.Chapter.id.asc())
+        .all()
+    )
+    chapter_row_map = {row.id: row for row in chapter_rows}
+    chapter_taxonomy_map = {
+        row.id: find_chapter_taxonomy(
+            row.title,
+            chapter_code=row.chapter_code,
+            chapter_keywords=row.chapter_keywords or [],
+        )
+        for row in chapter_rows
+    }
+
+    chapter_resource_counts: dict[int, int] = {}
+    chapter_sector_map: dict[int, str] = {}
+    sector_taxonomy_totals = {
+        key: {"knowledge_tag_count": 0, "exam_point_count": 0, "experiment_count": 0}
+        for key in MAP_SECTOR_ORDER
+    }
+    graph_resources = [node for node in base_graph.nodes if node.node_type == "resource"]
+    for node in graph_resources:
+        chapter_id = node.chapter_id
+        if chapter_id:
+            chapter_resource_counts[chapter_id] = chapter_resource_counts.get(chapter_id, 0) + 1
+            chapter_row = chapter_row_map.get(chapter_id)
+            chapter_sector_map.setdefault(
+                chapter_id,
+                _infer_map_sector(
+                    chapter_row.title if chapter_row else "",
+                    " ".join(chapter_row.chapter_keywords or []) if chapter_row else "",
+                    legacy_sector=node.meta.get("sector_key"),
+                ),
+            )
+
+    chapter_node_by_id: dict[str, schemas.RagMapNodeOut] = {}
+    sector_node_ids: dict[str, str] = {}
+    sector_chapters: dict[str, list[int]] = {key: [] for key in MAP_SECTOR_ORDER}
+    nodes_by_id: dict[str, schemas.RagMapNodeOut] = {}
+    edge_map: dict[tuple[str, str, str], schemas.RagMapEdgeOut] = {}
+
+    root_node = _make_map_node(
+        node_id=MAP_ROOT_ID,
+        label="高中物理",
+        keyword_label="高中物理",
+        node_type="root",
+        layer=0,
+        position=(0.0, 0.0),
+        child_count=len(MAP_SECTOR_ORDER),
+        is_expandable=True,
+        collapsed=False,
+        min_zoom_level=0,
+        meta={"subtitle": "GraphRAG 知识地图"},
+    )
+    nodes_by_id[root_node.id] = root_node
+
+    for index, sector_key in enumerate(MAP_SECTOR_ORDER):
+        sector_node = _make_map_node(
+            node_id=f"sector:{sector_key}",
+            label=MAP_SECTOR_LABELS[sector_key],
+            keyword_label=MAP_SECTOR_LABELS[sector_key],
+            node_type="sector",
+            layer=0,
+            position=MAP_SECTOR_LAYOUTS[sector_key],
+            parent_id=MAP_ROOT_ID,
+            sector_key=sector_key,
+            display_priority=index,
+            is_expandable=True,
+            collapsed=True,
+            min_zoom_level=0,
+            meta={
+                "color": MAP_SECTOR_COLORS[sector_key],
+                "sector_label": MAP_SECTOR_LABELS[sector_key],
+            },
+        )
+        nodes_by_id[sector_node.id] = sector_node
+        sector_node_ids[sector_key] = sector_node.id
+        _append_map_edge(edge_map, source=MAP_ROOT_ID, target=sector_node.id, edge_type="contains", min_zoom_level=0)
+
+    for chapter_row in chapter_rows:
+        sector_key = chapter_sector_map.get(chapter_row.id) or _infer_map_sector(
+            chapter_row.title,
+            " ".join(chapter_row.chapter_keywords or []),
+        )
+        chapter_sector_map[chapter_row.id] = sector_key
+        sector_chapters.setdefault(sector_key, []).append(chapter_row.id)
+        chapter_taxonomy = chapter_taxonomy_map.get(chapter_row.id)
+        if chapter_taxonomy:
+            sector_taxonomy_totals[sector_key]["knowledge_tag_count"] += len(chapter_taxonomy.knowledge_tags)
+            sector_taxonomy_totals[sector_key]["exam_point_count"] += len(chapter_taxonomy.exam_tags)
+            sector_taxonomy_totals[sector_key]["experiment_count"] += len(chapter_taxonomy.experiment_tags)
+
+    chapter_kp_counts: dict[int, int] = {}
+    kp_rows = (
+        db.query(models.KnowledgePoint)
+        .join(models.Chapter, models.Chapter.id == models.KnowledgePoint.chapter_id)
+        .filter(
+            models.Chapter.stage == workspace.stage,
+            models.Chapter.subject == workspace.subject,
+        )
+        .order_by(models.KnowledgePoint.chapter_id.asc(), models.KnowledgePoint.kp_code.asc(), models.KnowledgePoint.id.asc())
+        .limit(2400)
+        .all()
+    )
+    normalized_scope = _normalize_graph_scope(scope)
+    if normalized_scope == RAG_GRAPH_SCOPE_PUBLIC:
+        kp_rows = [row for row in kp_rows if (row.status or "").strip().lower() == "published"]
+
+    kp_ids = [row.id for row in kp_rows]
+    kp_edges_by_src: dict[int, list[models.KnowledgeEdge]] = {}
+    if kp_ids:
+        edge_rows = (
+            db.query(models.KnowledgeEdge)
+            .filter(
+                models.KnowledgeEdge.src_kp_id.in_(kp_ids),
+                models.KnowledgeEdge.dst_kp_id.in_(kp_ids),
+            )
+            .limit(5000)
+            .all()
+        )
+        for row in edge_rows:
+            kp_edges_by_src.setdefault(row.src_kp_id, []).append(row)
+
+    kp_rows_by_chapter: dict[int, list[models.KnowledgePoint]] = {}
+    for row in kp_rows:
+        kp_rows_by_chapter.setdefault(row.chapter_id, []).append(row)
+        chapter_kp_counts[row.chapter_id] = chapter_kp_counts.get(row.chapter_id, 0) + 1
+
+    for sector_key, chapter_ids in sector_chapters.items():
+        center_x, center_y = MAP_SECTOR_LAYOUTS[sector_key]
+        total = max(1, len(chapter_ids))
+        for index, chapter_id in enumerate(chapter_ids):
+            chapter_row = chapter_row_map.get(chapter_id)
+            if not chapter_row:
+                continue
+            chapter_taxonomy = chapter_taxonomy_map.get(chapter_id)
+            chapter_meta = {
+                "chapter_id": chapter_row.id,
+                "chapter_code": chapter_row.chapter_code,
+                "grade": chapter_row.grade,
+                "volume_code": chapter_row.volume_code,
+                "sector_label": MAP_SECTOR_LABELS[sector_key],
+                "knowledge_point_count": chapter_kp_counts.get(chapter_row.id, 0),
+                "resource_count": chapter_resource_counts.get(chapter_row.id, 0),
+                "taxonomy_source": ", ".join(chapter_taxonomy.source_files) if chapter_taxonomy else None,
+                "knowledge_tags": chapter_taxonomy.knowledge_tags[:10] if chapter_taxonomy else [],
+                "focus_tags": chapter_taxonomy.focus_tags[:10] if chapter_taxonomy else [],
+                "exam_tags": chapter_taxonomy.exam_tags[:10] if chapter_taxonomy else [],
+                "problem_tags": chapter_taxonomy.problem_tags[:10] if chapter_taxonomy else [],
+                "experiment_tags": chapter_taxonomy.experiment_tags[:10] if chapter_taxonomy else [],
+                "tags": chapter_taxonomy.tags[:12] if chapter_taxonomy else [],
+            }
+            chapter_summary = _build_taxonomy_summary(chapter_meta)
+            if chapter_summary:
+                chapter_meta["related_summary"] = chapter_summary
+            angle = (-math.pi / 2) + (index / total) * (math.pi * 1.45) - (math.pi * 0.72)
+            radius = 145 + (index % 3) * 18
+            chapter_node = _make_map_node(
+                node_id=f"map-chapter:{chapter_row.id}",
+                label=f"{chapter_row.chapter_code} {chapter_row.title}".strip(),
+                keyword_label=chapter_row.title[:10],
+                node_type="chapter",
+                layer=1,
+                position=(center_x + math.cos(angle) * radius, center_y + math.sin(angle) * radius),
+                parent_id=sector_node_ids[sector_key],
+                sector_key=sector_key,
+                display_priority=index,
+                child_count=chapter_kp_counts.get(chapter_row.id, 0),
+                is_expandable=True,
+                collapsed=True,
+                min_zoom_level=1,
+                meta=chapter_meta,
+            )
+            chapter_node_by_id[chapter_node.id] = chapter_node
+            nodes_by_id[chapter_node.id] = chapter_node
+            _append_map_edge(
+                edge_map,
+                source=sector_node_ids[sector_key],
+                target=chapter_node.id,
+                edge_type="contains",
+                min_zoom_level=1,
+            )
+
+    resources_by_chapter: dict[int, list[schemas.RagGraphNodeOut]] = {}
+    resource_parent_kp: dict[str, str] = {}
+    for resource_node in graph_resources:
+        sector_key = chapter_sector_map.get(resource_node.chapter_id or -1) or _infer_map_sector(
+            resource_node.label,
+            resource_node.meta.get("summary"),
+        )
+        resource_node.meta["sector_key"] = sector_key
+        if resource_node.chapter_id:
+            resources_by_chapter.setdefault(resource_node.chapter_id, []).append(resource_node)
+
+    kp_map_nodes: dict[str, schemas.RagMapNodeOut] = {}
+    kp_row_id_to_node_id: dict[int, str] = {}
+    for chapter_row_id, rows in kp_rows_by_chapter.items():
+        chapter_node = chapter_node_by_id.get(f"map-chapter:{chapter_row_id}")
+        if not chapter_node:
+            continue
+        sector_key = chapter_node.sector_key or "mechanics"
+        total = max(1, len(rows))
+        for index, kp_row in enumerate(rows[: max(MAP_NODE_LIMITS[2] * 3, len(rows))]):
+            chapter_taxonomy = chapter_taxonomy_map.get(chapter_row_id)
+            kp_taxonomy = match_kp_taxonomy_labels(
+                kp_row.name,
+                chapter_taxonomy,
+                aliases=kp_row.aliases or [],
+                description=kp_row.description,
+            )
+            angle = (-math.pi / 2) + (index / total) * math.pi * 2
+            radius = 122 + (index // 10) * 26
+            kp_name = f"{kp_row.kp_code} {kp_row.name}".strip()
+            kp_meta = {
+                "knowledge_point_id": kp_row.id,
+                "kp_code": kp_row.kp_code,
+                "difficulty": kp_row.difficulty,
+                "description": kp_row.description,
+                "aliases": kp_row.aliases or [],
+                "status": kp_row.status,
+                "sector_label": MAP_SECTOR_LABELS[sector_key],
+                "chapter_id": chapter_row_id,
+                "chapter_title": chapter_node.label,
+                "path": f"{MAP_SECTOR_LABELS[sector_key]} / {chapter_node.label}",
+                "taxonomy_source": ", ".join(chapter_taxonomy.source_files) if chapter_taxonomy else None,
+                **kp_taxonomy,
+            }
+            kp_meta["tags"] = list(
+                dict.fromkeys(
+                    [
+                        *kp_taxonomy["knowledge_tags"],
+                        *kp_taxonomy["focus_tags"],
+                        *kp_taxonomy["exam_tags"],
+                        *kp_taxonomy["problem_tags"],
+                        *kp_taxonomy["experiment_tags"],
+                    ]
+                )
+            )[:12]
+            kp_summary = _build_taxonomy_summary(kp_meta)
+            if kp_summary:
+                kp_meta["related_summary"] = kp_summary
+            kp_node = _make_map_node(
+                node_id=f"kp:{kp_row.id}",
+                label=kp_name,
+                keyword_label=kp_row.name[:10],
+                node_type="knowledge_point",
+                layer=2,
+                position=(
+                    chapter_node.position.x + math.cos(angle) * radius,
+                    chapter_node.position.y + math.sin(angle) * (radius * 0.72),
+                ),
+                parent_id=chapter_node.id,
+                sector_key=sector_key,
+                display_priority=index,
+                child_count=0,
+                is_expandable=True,
+                collapsed=True,
+                min_zoom_level=2,
+                meta=kp_meta,
+            )
+            kp_map_nodes[kp_node.id] = kp_node
+            kp_row_id_to_node_id[kp_row.id] = kp_node.id
+            nodes_by_id[kp_node.id] = kp_node
+            _append_map_edge(
+                edge_map,
+                source=chapter_node.id,
+                target=kp_node.id,
+                edge_type="contains",
+                min_zoom_level=2,
+            )
+
+            chapter_resources = resources_by_chapter.get(chapter_row_id, [])
+            scored_resources = []
+            for resource_node in chapter_resources:
+                score = _score_resource_match(
+                    kp_name=kp_row.name,
+                    kp_aliases=kp_row.aliases or [],
+                    kp_description=kp_row.description,
+                    resource_node=resource_node,
+                    sector_key=sector_key,
+                )
+                if score >= 1.2:
+                    scored_resources.append((score, resource_node))
+            scored_resources.sort(key=lambda item: (-item[0], item[1].label))
+            chosen_resources = scored_resources[: max(MAP_NODE_LIMITS[3], 8)]
+            kp_node.child_count = len(chosen_resources)
+            kp_node.meta["resource_count"] = len(chosen_resources)
+            if not kp_node.meta.get("related_summary"):
+                kp_node.meta["related_summary"] = (
+                    kp_row.description or f"{kp_row.name} 相关资源与知识点导引"
+                ).strip()
+            for r_index, (score, resource_node) in enumerate(chosen_resources):
+                resource_parent_kp.setdefault(resource_node.id, kp_node.id)
+                if resource_node.id not in nodes_by_id:
+                    angle_offset = (-math.pi / 2) + (r_index / max(1, len(chosen_resources))) * math.pi * 2
+                    radius_offset = 110 + (r_index // 6) * 22
+                    resource_map_node = _make_map_node(
+                        node_id=resource_node.id,
+                        label=resource_node.label,
+                        keyword_label=resource_node.keyword_label,
+                        node_type="resource",
+                        layer=3,
+                        position=(
+                            kp_node.position.x + math.cos(angle_offset) * radius_offset,
+                            kp_node.position.y + math.sin(angle_offset) * (radius_offset * 0.7),
+                        ),
+                        parent_id=kp_node.id,
+                        sector_key=sector_key,
+                        display_priority=r_index,
+                        child_count=0,
+                        is_expandable=False,
+                        collapsed=False,
+                        min_zoom_level=3,
+                        source_id=resource_node.source_id,
+                        resource_id=resource_node.resource_id,
+                        canonical_key=resource_node.canonical_key,
+                        meta={
+                            **resource_node.meta,
+                            "sector_label": MAP_SECTOR_LABELS[sector_key],
+                            "chapter_id": chapter_row_id,
+                            "chapter_title": chapter_node.label,
+                            "path": f"{MAP_SECTOR_LABELS[sector_key]} / {chapter_node.label} / {kp_row.name}",
+                            "match_score": round(score, 3),
+                        },
+                    )
+                    nodes_by_id[resource_map_node.id] = resource_map_node
+                _append_map_edge(
+                    edge_map,
+                    source=kp_node.id,
+                    target=resource_node.id,
+                    edge_type="related_resource",
+                    weight=max(0.6, min(2.4, score)),
+                    min_zoom_level=3,
+                )
+
+    for src_id, relation_rows in kp_edges_by_src.items():
+        source_node_id = kp_row_id_to_node_id.get(src_id)
+        if not source_node_id:
+            continue
+        for relation_row in relation_rows[:10]:
+            target_node_id = kp_row_id_to_node_id.get(relation_row.dst_kp_id)
+            if not target_node_id:
+                continue
+            _append_map_edge(
+                edge_map,
+                source=source_node_id,
+                target=target_node_id,
+                edge_type=relation_row.edge_type,
+                weight=float(relation_row.strength or 0.5),
+                min_zoom_level=2,
+            )
+
+    for sector_key in MAP_SECTOR_ORDER:
+        node = nodes_by_id[sector_node_ids[sector_key]]
+        chapter_ids = sector_chapters.get(sector_key, [])
+        node.child_count = len(chapter_ids)
+        node.meta["chapter_count"] = len(chapter_ids)
+        node.meta["knowledge_point_count"] = sum(chapter_kp_counts.get(chapter_id, 0) for chapter_id in chapter_ids)
+        node.meta["resource_count"] = sum(chapter_resource_counts.get(chapter_id, 0) for chapter_id in chapter_ids)
+        node.meta["knowledge_tag_count"] = sector_taxonomy_totals[sector_key]["knowledge_tag_count"]
+        node.meta["exam_point_count"] = sector_taxonomy_totals[sector_key]["exam_point_count"]
+        node.meta["experiment_count"] = sector_taxonomy_totals[sector_key]["experiment_count"]
+
+    requested_focus_id = focus_id if focus_id in nodes_by_id else None
+    resolved_zoom = max(0, min(3, int(zoom_level)))
+    if requested_focus_id and requested_focus_id.startswith("sector:"):
+        resolved_zoom = max(resolved_zoom, 1)
+    if requested_focus_id and requested_focus_id.startswith("map-chapter:"):
+        resolved_zoom = max(resolved_zoom, 2)
+    if requested_focus_id and requested_focus_id.startswith("kp:"):
+        resolved_zoom = max(resolved_zoom, 3)
+    if requested_focus_id and nodes_by_id[requested_focus_id].node_type == "resource":
+        resolved_zoom = 3
+        requested_focus_id = resource_parent_kp.get(requested_focus_id, requested_focus_id)
+
+    visible_ids: set[str] = {MAP_ROOT_ID, *sector_node_ids.values()}
+    breadcrumbs: list[dict[str, str | int]] = []
+
+    if requested_focus_id and requested_focus_id.startswith("sector:"):
+        sector_key = requested_focus_id.split(":", 1)[1]
+        chapter_ids = sector_chapters.get(sector_key, [])[: MAP_NODE_LIMITS[1]]
+        visible_ids.update(f"map-chapter:{chapter_id}" for chapter_id in chapter_ids)
+        breadcrumbs.append({"id": requested_focus_id, "label": MAP_SECTOR_LABELS.get(sector_key, sector_key), "layer": 0})
+    elif requested_focus_id and requested_focus_id.startswith("map-chapter:"):
+        chapter_node = nodes_by_id[requested_focus_id]
+        sector_key = chapter_node.sector_key or "mechanics"
+        chapter_ids = sector_chapters.get(sector_key, [])[: MAP_NODE_LIMITS[1]]
+        visible_ids.update(f"map-chapter:{chapter_id}" for chapter_id in chapter_ids)
+        visible_ids.update(
+            node.id
+            for node in kp_map_nodes.values()
+            if node.parent_id == requested_focus_id
+        )
+        breadcrumbs.extend([
+            {"id": f"sector:{sector_key}", "label": MAP_SECTOR_LABELS[sector_key], "layer": 0},
+            {"id": requested_focus_id, "label": chapter_node.label, "layer": 1},
+        ])
+    elif requested_focus_id and requested_focus_id.startswith("kp:"):
+        kp_node = nodes_by_id[requested_focus_id]
+        chapter_id = kp_node.parent_id
+        chapter_node = nodes_by_id.get(chapter_id or "")
+        sector_key = kp_node.sector_key or "mechanics"
+        chapter_ids = sector_chapters.get(sector_key, [])[: MAP_NODE_LIMITS[1]]
+        visible_ids.update(f"map-chapter:{chapter}" for chapter in chapter_ids)
+        visible_ids.update(
+            node.id
+            for node in kp_map_nodes.values()
+            if node.parent_id == chapter_id
+        )
+        visible_ids.update(
+            edge.target
+            for edge in edge_map.values()
+            if edge.source == requested_focus_id and edge.edge_type == "related_resource"
+        )
+        visible_ids.add(requested_focus_id)
+        breadcrumbs.extend([
+            {"id": f"sector:{sector_key}", "label": MAP_SECTOR_LABELS[sector_key], "layer": 0},
+            {"id": chapter_id, "label": chapter_node.label if chapter_node else "", "layer": 1},
+            {"id": requested_focus_id, "label": kp_node.label, "layer": 2},
+        ])
+    elif resolved_zoom >= 1:
+        # Keep the default first screen clean even if the zoom slider moves before focus is chosen.
+        visible_ids = {MAP_ROOT_ID, *sector_node_ids.values()}
+
+    visible_nodes = [nodes_by_id[node_id] for node_id in visible_ids if node_id in nodes_by_id]
+    for node in visible_nodes:
+        node.collapsed = node.is_expandable and node.id not in visible_ids
+
+    visible_edge_keys = []
+    for key, edge in edge_map.items():
+        if edge.source in visible_ids and edge.target in visible_ids and edge.min_zoom_level <= resolved_zoom:
+            visible_edge_keys.append(key)
+    visible_edges = [edge_map[key] for key in visible_edge_keys]
+
+    stats = {
+        "sectors": len(MAP_SECTOR_ORDER),
+        "chapters": len(chapter_node_by_id),
+        "knowledge_points": len(kp_map_nodes),
+        "resources": len(graph_resources),
+        "focus_type": nodes_by_id[requested_focus_id].node_type if requested_focus_id and requested_focus_id in nodes_by_id else None,
+        "visible_nodes": len(visible_nodes),
+        "visible_edges": len(visible_edges),
+        "scope": scope,
+        "graph_stats": base_graph.stats.model_dump() if base_graph.stats else {},
+    }
+
+    return schemas.RagMapResponse(
+        workspace_id=workspace.id,
+        generated_at=datetime.now(timezone.utc),
+        root=root_node,
+        visible_nodes=visible_nodes,
+        visible_edges=visible_edges,
+        zoom_level=resolved_zoom,
+        focus_id=requested_focus_id,
+        breadcrumbs=breadcrumbs,
+        stats=stats,
     )
 
 
@@ -2450,6 +3112,39 @@ def workspace_graph(
     )
     rag_cache.set_cached_graph(cache_key, graph_out)
     return graph_out
+
+
+@router.get("/workspaces/{workspace_id}/map", response_model=schemas.RagMapResponse)
+def workspace_map(
+    workspace_id: int,
+    q: str | None = Query(default=None),
+    limit: int = Query(default=240, ge=40, le=800),
+    scope: str = Query(default=RAG_GRAPH_SCOPE_PUBLIC, pattern="^(public|mixed)$"),
+    zoom_level: int = Query(default=0, ge=0, le=3),
+    focus_id: str | None = Query(default=None),
+    db: Session = Depends(get_db_read),
+    current_user: models.User = Depends(get_current_user),
+):
+    workspace = _ensure_workspace(db, workspace_id)
+    cache_key = (
+        f"workspace:{workspace.id}:map:"
+        f"scope={scope}|q={(q or '').strip()}|limit={limit}|zoom={zoom_level}|focus={(focus_id or '').strip()}"
+    )
+    cached = rag_cache.get_cached_graph(cache_key)
+    if cached is not None:
+        return cached
+    map_out = _build_workspace_map(
+        db,
+        workspace,
+        q=q,
+        limit=limit,
+        scope=scope,
+        zoom_level=zoom_level,
+        focus_id=focus_id,
+        access_user_id=current_user.id,
+    )
+    rag_cache.set_cached_graph(cache_key, map_out)
+    return map_out
 
 
 @router.get(
