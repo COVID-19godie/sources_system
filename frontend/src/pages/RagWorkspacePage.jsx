@@ -101,6 +101,163 @@ function mergeFilterState(previous, keys) {
   return next;
 }
 
+const SEARCH_TYPE_PRIORITY = {
+  sector: 160,
+  chapter: 130,
+  knowledge_point: 120,
+  resource: 80
+};
+
+function normalizeSearchText(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function mapNodeIdForSearch(id, nodeType) {
+  if (!id && nodeType === "chapter") {
+    return "";
+  }
+  if (nodeType === "chapter" && String(id).startsWith("chapter:")) {
+    return String(id).replace("chapter:", "map-chapter:");
+  }
+  return String(id || "");
+}
+
+function zoomForNodeType(nodeType) {
+  if (nodeType === "root") return 0;
+  if (nodeType === "sector") return 1;
+  if (nodeType === "chapter") return 2;
+  if (nodeType === "knowledge_point" || nodeType === "resource") return 3;
+  return 0;
+}
+
+function scoreSearchEntry(entry, keyword) {
+  const normalizedKeyword = normalizeSearchText(keyword);
+  if (!normalizedKeyword) return 0;
+  const fields = [
+    entry.label,
+    entry.keyword_label,
+    ...(entry.search_keywords || []),
+    entry.path,
+    entry.chapter_title,
+    entry.sector_label
+  ].filter(Boolean);
+
+  let score = SEARCH_TYPE_PRIORITY[entry.node_type] || 0;
+  for (const raw of fields) {
+    const normalized = normalizeSearchText(raw);
+    if (!normalized) continue;
+    if (normalized === normalizedKeyword) {
+      score += 220;
+      continue;
+    }
+    if (normalized.startsWith(normalizedKeyword)) {
+      score += 140;
+      continue;
+    }
+    if (normalized.includes(normalizedKeyword)) {
+      score += 90;
+    }
+  }
+  return score;
+}
+
+function buildMarkerPayload(entry, fallbackPath = "") {
+  return {
+    node_id: entry.id,
+    label: entry.keyword_label || entry.label,
+    subtitle: entry.sector_label || entry.node_type,
+    path: entry.path || fallbackPath || "",
+    marker_type: "search_result"
+  };
+}
+
+function nodeTypeFromLayer(layer = 0) {
+  const numericLayer = Number(layer || 0);
+  if (numericLayer < 0) return "root";
+  if (numericLayer <= 0) return "sector";
+  if (numericLayer === 1) return "chapter";
+  if (numericLayer >= 2) return "knowledge_point";
+  return "resource";
+}
+
+function nodeTypeFromId(id = "", fallbackLayer = 0) {
+  const value = String(id || "");
+  if (value === "root" || value.startsWith("root:")) return "root";
+  if (value.startsWith("sector:")) return "sector";
+  if (value.startsWith("map-chapter:")) return "chapter";
+  if (value.startsWith("kp:")) return "knowledge_point";
+  if (value.startsWith("resource:")) return "resource";
+  return nodeTypeFromLayer(fallbackLayer);
+}
+
+function mapNodeIdToGraphNodeId(id = "") {
+  const value = String(id || "");
+  if (value.startsWith("map-chapter:")) {
+    return value.replace("map-chapter:", "chapter:");
+  }
+  return value;
+}
+
+function collectMapSubtreeIds(nodes = [], rootId = "") {
+  if (!rootId) {
+    return new Set(nodes.map((node) => node.id));
+  }
+  const byParent = new Map();
+  for (const node of nodes) {
+    const parentKey = node.parent_id || "__root__";
+    const current = byParent.get(parentKey) || [];
+    current.push(node.id);
+    byParent.set(parentKey, current);
+  }
+  const allowed = new Set();
+  const stack = [rootId];
+  while (stack.length) {
+    const currentId = stack.pop();
+    if (!currentId || allowed.has(currentId)) continue;
+    allowed.add(currentId);
+    for (const childId of byParent.get(currentId) || []) {
+      stack.push(childId);
+    }
+  }
+  return allowed;
+}
+
+function filterMapPayloadToSubtree(payload, rootId = "") {
+  if (!payload?.visible_nodes?.length || !rootId) {
+    return payload;
+  }
+  const allowed = collectMapSubtreeIds(payload.visible_nodes, rootId);
+  if (!allowed.size || !allowed.has(rootId)) {
+    return payload;
+  }
+  return {
+    ...payload,
+    visible_nodes: (payload.visible_nodes || []).filter((node) => allowed.has(node.id)),
+    visible_edges: (payload.visible_edges || []).filter((edge) => allowed.has(edge.source) && allowed.has(edge.target))
+  };
+}
+
+function filterGraphToSubtree(graphPayload, mapPayload, rootId = "") {
+  if (!graphPayload?.nodes?.length || !mapPayload?.visible_nodes?.length || !rootId) {
+    return graphPayload;
+  }
+  const subtreePayload = filterMapPayloadToSubtree(mapPayload, rootId);
+  const graphNodeIds = new Set((graphPayload.nodes || []).map((node) => node.id));
+  const seedIds = new Set(
+    (subtreePayload.visible_nodes || [])
+      .map((node) => mapNodeIdToGraphNodeId(node.id))
+      .filter((id) => graphNodeIds.has(id))
+  );
+  if (!seedIds.size) {
+    return graphPayload;
+  }
+  return {
+    ...graphPayload,
+    nodes: (graphPayload.nodes || []).filter((node) => seedIds.has(node.id)),
+    edges: (graphPayload.edges || []).filter((edge) => seedIds.has(edge.source) && seedIds.has(edge.target))
+  };
+}
+
 class GraphRenderBoundary extends Component {
   constructor(props) {
     super(props);
@@ -126,6 +283,7 @@ class GraphRenderBoundary extends Component {
 }
 
 export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessage }) {
+  const graphViewportRef = useRef(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
 
   const [workspaces, setWorkspaces] = useState([]);
@@ -146,13 +304,21 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
   const [graph, setGraph] = useState({ nodes: [], edges: [], stats: null });
   const [mapData, setMapData] = useState(null);
   const [mapZoomLevel, setMapZoomLevel] = useState(0);
+  const [targetZoomLevel, setTargetZoomLevel] = useState(0);
   const [mapFocusId, setMapFocusId] = useState("");
+  const [focusedSubtreeRootId, setFocusedSubtreeRootId] = useState("");
+  const [focusedSubtreeRootType, setFocusedSubtreeRootType] = useState("");
+  const [centerNodeId, setCenterNodeId] = useState("");
+  const [navigationState, setNavigationState] = useState("idle");
   const [loadingGraph, setLoadingGraph] = useState(false);
   const [graphLimit, setGraphLimit] = useState(200);
   const [graphFitTick, setGraphFitTick] = useState(0);
   const [selectedNodeId, setSelectedNodeId] = useState("");
   const [highlightNodes, setHighlightNodes] = useState([]);
   const [highlightEdges, setHighlightEdges] = useState([]);
+  const [highlightPathNodes, setHighlightPathNodes] = useState([]);
+  const [activeMarker, setActiveMarker] = useState(null);
+  const [searchCandidates, setSearchCandidates] = useState([]);
 
   const [graphViewMode, setGraphViewMode] = useState(() => {
     if (typeof window === "undefined") {
@@ -164,6 +330,7 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
     }
     return "map";
   });
+  const [graph3DFullscreenTick, setGraph3DFullscreenTick] = useState(0);
   const [webglSupported, setWebglSupported] = useState(false);
   const [graphScope, setGraphScope] = useState("public");
   const [includeFormatNodes, setIncludeFormatNodes] = useState(true);
@@ -269,13 +436,124 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
     formatFilter
   ]);
 
+  const focusedMapData = useMemo(
+    () => filterMapPayloadToSubtree(mapData, focusedSubtreeRootId),
+    [mapData, focusedSubtreeRootId]
+  );
+
+  const focusedGraph = useMemo(
+    () => filterGraphToSubtree(filteredGraph, focusedMapData || mapData, focusedSubtreeRootId),
+    [filteredGraph, focusedMapData, mapData, focusedSubtreeRootId]
+  );
+
   const selectedNode = useMemo(() => {
-    const mapMatch = (mapData?.visible_nodes || []).find((item) => item.id === selectedNodeId);
+    const mapMatch = (focusedMapData?.visible_nodes || []).find((item) => item.id === selectedNodeId);
     if (mapMatch) {
       return mapMatch;
     }
-    return (filteredGraph.nodes || []).find((item) => item.id === selectedNodeId) || null;
-  }, [filteredGraph.nodes, mapData, selectedNodeId]);
+    return (focusedGraph.nodes || []).find((item) => item.id === selectedNodeId) || null;
+  }, [focusedGraph.nodes, focusedMapData, selectedNodeId]);
+
+  const selectedChapterId = useMemo(() => {
+    if (selectedNodeId?.startsWith("map-chapter:")) {
+      return Number(String(selectedNodeId).replace("map-chapter:", ""));
+    }
+    if (selectedNodeId?.startsWith("kp:")) {
+      const rows = Object.values(knowledgePointsByChapter || []).flat();
+      const match = rows.find((item) => item.id === Number(String(selectedNodeId).replace("kp:", "")));
+      return match?.chapter_id || null;
+    }
+    return null;
+  }, [selectedNodeId, knowledgePointsByChapter]);
+
+  const focusedKnowledgePoints = useMemo(() => {
+    if (selectedChapterId) {
+      return knowledgePointsByChapter[String(selectedChapterId)] || [];
+    }
+    const firstChapter = chapterGroups.flatMap((group) => group.chapters || [])[0];
+    return firstChapter ? (knowledgePointsByChapter[String(firstChapter.id)] || []) : [];
+  }, [selectedChapterId, chapterGroups, knowledgePointsByChapter]);
+
+  const mapSearchIndex = useMemo(() => {
+    const entries = [];
+    const seen = new Set();
+    const pushEntry = (entry) => {
+      if (!entry?.id || seen.has(`${entry.node_type}:${entry.id}`)) {
+        return;
+      }
+      seen.add(`${entry.node_type}:${entry.id}`);
+      entries.push(entry);
+    };
+
+    for (const node of mapData?.visible_nodes || []) {
+      pushEntry({
+        id: mapNodeIdForSearch(node.id, node.node_type),
+        label: node.label,
+        keyword_label: node.keyword_label,
+        node_type: node.node_type,
+        search_keywords: node.search_keywords || [],
+        path: node.meta?.path || "",
+        sector_label: node.meta?.sector_label || "",
+        chapter_title: node.meta?.chapter_title || "",
+        breadcrumbs_path: node.breadcrumbs_path || []
+      });
+    }
+
+    for (const node of graph.nodes || []) {
+      if (!["chapter", "resource"].includes(node.node_type)) {
+        continue;
+      }
+      pushEntry({
+        id: mapNodeIdForSearch(node.id, node.node_type),
+        label: node.label,
+        keyword_label: node.keyword_label,
+        node_type: node.node_type,
+        search_keywords: [
+          ...(node.meta?.tags || []),
+          ...(node.meta?.knowledge_tags || []),
+          ...(node.meta?.focus_tags || []),
+          ...(node.meta?.exam_tags || []),
+          ...(node.meta?.problem_tags || []),
+          ...(node.meta?.experiment_tags || []),
+          ...(node.meta?.aliases || [])
+        ],
+        path: node.meta?.path || "",
+        sector_label: node.meta?.sector_label || "",
+        chapter_title: node.meta?.chapter_title || ""
+      });
+    }
+
+    for (const group of chapterGroups || []) {
+      for (const chapter of group.chapters || []) {
+        pushEntry({
+          id: `map-chapter:${chapter.id}`,
+          label: `${chapter.chapter_code} ${chapter.title}`.trim(),
+          keyword_label: chapter.title,
+          node_type: "chapter",
+          search_keywords: [chapter.chapter_code, ...(chapter.chapter_keywords || []), group.volume?.volume_name || "", chapter.grade || ""],
+          path: `${group.volume?.volume_name || ""} / ${chapter.title}`.trim(),
+          chapter_title: chapter.title
+        });
+      }
+    }
+
+    for (const [chapterId, rows] of Object.entries(knowledgePointsByChapter || {})) {
+      const chapterNode = entries.find((item) => item.id === `map-chapter:${chapterId}`);
+      for (const kp of rows || []) {
+        pushEntry({
+          id: `kp:${kp.id}`,
+          label: `${kp.kp_code} ${kp.name}`.trim(),
+          keyword_label: kp.name,
+          node_type: "knowledge_point",
+          search_keywords: [...(kp.aliases || []), kp.description || "", chapterNode?.label || "", chapterNode?.path || ""],
+          path: chapterNode ? `${chapterNode.path} / ${kp.name}` : kp.name,
+          chapter_title: chapterNode?.label || ""
+        });
+      }
+    }
+
+    return entries;
+  }, [mapData, graph.nodes, chapterGroups, knowledgePointsByChapter]);
 
   const nodeTypeCounts = useMemo(() => {
     const counts = {};
@@ -292,6 +570,72 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
     }
     return counts;
   }, [graph.edges]);
+
+  async function navigateToMapEntry(entry, reason = "focused") {
+    if (!entry) {
+      return;
+    }
+    const desiredZoom = zoomForNodeType(entry.node_type);
+    const desiredFocusId = entry.id;
+    const fallbackPath = entry.path || entry.breadcrumbs_path?.map((item) => item.label).join(" / ") || "";
+
+    setNavigationState(reason === "search_result" ? "search_result" : "flying");
+    setTargetZoomLevel(desiredZoom);
+    setMapFocusId(desiredFocusId);
+    setMapZoomLevel(desiredZoom);
+    setCenterNodeId(desiredFocusId);
+    setSelectedNodeId(desiredFocusId);
+    setHighlightNodes([desiredFocusId]);
+    setHighlightEdges([]);
+    setHighlightPathNodes(
+      entry.breadcrumbs_path?.map((item) => item.id).filter(Boolean)
+      || [desiredFocusId]
+    );
+    setActiveMarker(buildMarkerPayload(entry, fallbackPath));
+
+    if (activeWorkspaceId) {
+      try {
+        const payload = await loadWorkspaceMap(activeWorkspaceId, desiredZoom, desiredFocusId);
+        const visibleNodeIds = new Set((payload?.visible_nodes || []).map((item) => item.id));
+        const resolvedId = visibleNodeIds.has(desiredFocusId) ? desiredFocusId : (payload?.focus_id || desiredFocusId);
+        const focusedNode = (payload?.visible_nodes || []).find((item) => item.id === resolvedId);
+        if (focusedNode && focusedNode.node_type !== "resource") {
+          setFocusedSubtreeRootId(focusedNode.id);
+          setFocusedSubtreeRootType(focusedNode.node_type);
+        }
+        setCenterNodeId(resolvedId);
+        setSelectedNodeId(resolvedId);
+        setHighlightNodes([resolvedId]);
+        setHighlightPathNodes(
+          focusedNode?.breadcrumbs_path?.map((item) => item.id).filter(Boolean)
+          || entry.breadcrumbs_path?.map((item) => item.id).filter(Boolean)
+          || [resolvedId]
+        );
+        setActiveMarker(
+          focusedNode
+            ? buildMarkerPayload(
+                {
+                  id: focusedNode.id,
+                  label: focusedNode.label,
+                  keyword_label: focusedNode.keyword_label,
+                  node_type: focusedNode.node_type,
+                  sector_label: focusedNode.meta?.sector_label || "",
+                  path: focusedNode.meta?.path || fallbackPath,
+                },
+                fallbackPath
+              )
+            : buildMarkerPayload(entry, fallbackPath)
+        );
+      } finally {
+        window.setTimeout(() => {
+          setNavigationState(reason === "search_result" ? "search_result" : "focused");
+        }, 220);
+      }
+    } else if (entry.node_type !== "resource") {
+      setFocusedSubtreeRootId(entry.id);
+      setFocusedSubtreeRootType(entry.node_type);
+    }
+  }
 
   function stopBootstrapPolling() {
     if (bootstrapPollerRef.current) {
@@ -360,6 +704,37 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
     }
   }, [filteredGraph.nodes, selectedNodeId]);
 
+  useEffect(() => {
+    if (!mapData) {
+      return;
+    }
+    if (mapData.focus_id) {
+      setCenterNodeId(mapData.focus_id);
+    }
+    const focusedNode = (mapData.visible_nodes || []).find((item) => item.id === (mapData.focus_id || selectedNodeId));
+    if (focusedNode && activeMarker) {
+      setActiveMarker((prev) => {
+        const next = {
+          ...(prev || {}),
+          node_id: focusedNode.id,
+          label: prev?.label || focusedNode.keyword_label || focusedNode.label,
+          subtitle: prev?.subtitle || focusedNode.meta?.sector_label || "",
+          path: prev?.path || focusedNode.meta?.path || ""
+        };
+        if (
+          prev
+          && prev.node_id === next.node_id
+          && prev.label === next.label
+          && prev.subtitle === next.subtitle
+          && prev.path === next.path
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    }
+  }, [mapData, selectedNodeId, activeMarker]);
+
   async function loadWorkspaces() {
     const rows = await listRagWorkspaces({ token, stage: "senior", subject: "物理" });
     setWorkspaces(rows || []);
@@ -385,6 +760,13 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
       })
     ]);
     setChapterGroups(optionsData?.chapters_grouped || []);
+    const expandedState = {};
+    for (const group of optionsData?.chapters_grouped || []) {
+      for (const chapter of group.chapters || []) {
+        expandedState[String(chapter.id)] = { expanded: true };
+      }
+    }
+    setChapterTreeState((prev) => ({ ...prev, ...expandedState }));
     const grouped = {};
     for (const item of kpData || []) {
       const key = String(item.chapter_id || "");
@@ -406,8 +788,15 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
       setGraph({ nodes: [], edges: [], stats: null });
       setMapData(null);
       setMapFocusId("");
+      setFocusedSubtreeRootId("");
+      setFocusedSubtreeRootType("");
       setMapZoomLevel(0);
+      setTargetZoomLevel(0);
+      setCenterNodeId("");
       setSelectedNodeId("");
+      setActiveMarker(null);
+      setSearchCandidates([]);
+      setHighlightPathNodes([]);
       return;
     }
 
@@ -439,12 +828,17 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
       setMapData(mapPayload || null);
       if (mapPayload?.focus_id !== undefined) {
         setMapFocusId(mapPayload.focus_id || "");
+        setFocusedSubtreeRootId(mapPayload.focus_id || "");
+        const initialFocusedNode = (mapPayload?.visible_nodes || []).find((item) => item.id === mapPayload?.focus_id);
+        setFocusedSubtreeRootType(initialFocusedNode?.node_type || "");
       }
       if (typeof mapPayload?.zoom_level === "number") {
         setMapZoomLevel(mapPayload.zoom_level);
+        setTargetZoomLevel(mapPayload.zoom_level);
       }
       const initialNode = mapPayload?.focus_id || mapPayload?.visible_nodes?.find((item) => item.node_type === "sector")?.id || graphData?.nodes?.[0]?.id || "";
       setSelectedNodeId((current) => current || initialNode);
+      setCenterNodeId(mapPayload?.focus_id || initialNode);
     } finally {
       setLoadingGraph(false);
     }
@@ -466,9 +860,11 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
     setMapFocusId(payload?.focus_id || "");
     if (typeof payload?.zoom_level === "number") {
       setMapZoomLevel(payload.zoom_level);
+      setTargetZoomLevel(payload.zoom_level);
     }
     if (payload?.focus_id) {
       setSelectedNodeId(payload.focus_id);
+      setCenterNodeId(payload.focus_id);
     }
     return payload;
   }
@@ -503,9 +899,6 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
   }
 
   useEffect(() => {
-    if (!token) {
-      return;
-    }
     async function bootstrapPage() {
       try {
         const workspaceId = await runQuickBootstrap(false, false);
@@ -540,15 +933,15 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
   }, [graphViewMode]);
 
   useEffect(() => {
-    if (!token || !activeWorkspaceId) {
+    if (!activeWorkspaceId) {
       return;
     }
     loadWorkspaceData(activeWorkspaceId).catch((error) => setGlobalMessage(error.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graphScope, includeFormatNodes, graphLimit]);
+  }, [activeWorkspaceId, graphScope, includeFormatNodes, graphLimit]);
 
   useEffect(() => {
-    if (!token || !activeWorkspaceId) {
+    if (!activeWorkspaceId) {
       return;
     }
     loadWorkspaceMap(activeWorkspaceId, mapZoomLevel, mapFocusId).catch((error) => setGlobalMessage(error.message));
@@ -635,14 +1028,47 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
     });
   }
 
-  function handleFitGraphView() {
+  async function handleFitGraphView() {
     setGraphFitTick((prev) => prev + 1);
     setMapFocusId("");
+    setFocusedSubtreeRootId("");
+    setFocusedSubtreeRootType("");
     setMapZoomLevel(0);
+    setTargetZoomLevel(0);
+    setCenterNodeId("");
+    setNavigationState("idle");
+    setActiveMarker(null);
+    setSearchCandidates([]);
+    setHighlightPathNodes([]);
+    if (activeWorkspaceId) {
+      try {
+        await loadWorkspaceMap(activeWorkspaceId, 0, "");
+      } catch (error) {
+        setGlobalMessage(error.message);
+      }
+    }
   }
 
-  function locateGraphNode() {
-    const keyword = graphQuery.trim().toLowerCase();
+  async function locateGraphNode() {
+    const keyword = graphQuery.trim();
+    const ranked = mapSearchIndex
+      .map((entry) => ({ ...entry, score: scoreSearchEntry(entry, keyword) }))
+      .filter((entry) => entry.score > 0)
+      .sort((left, right) => right.score - left.score || left.label.localeCompare(right.label, "zh-CN"))
+      .slice(0, 8);
+    if (!keyword) {
+      setGlobalMessage("请输入要导航的板块、章节或知识点");
+      return;
+    }
+    setSearchCandidates(ranked);
+    if (!ranked.length) {
+      setActiveMarker(null);
+      setHighlightPathNodes([]);
+      setGlobalMessage("当前地图里没有找到匹配位置");
+      return;
+    }
+    await navigateToMapEntry(ranked[0], "search_result");
+    return;
     if (!keyword) {
       setGlobalMessage("请输入节点关键词");
       return;
@@ -697,7 +1123,15 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
         setHighlightNodes(data.results[0].highlight_nodes || []);
         setHighlightEdges(data.results[0].highlight_edges || []);
         if (data.results[0].highlight_nodes?.length) {
-          setSelectedNodeId(data.results[0].highlight_nodes[0]);
+          const firstNodeId = mapNodeIdForSearch(data.results[0].highlight_nodes[0], "resource");
+          await navigateToMapEntry({
+            id: firstNodeId,
+            label: data.results[0].target?.title || data.results[0].resource?.title || firstNodeId,
+            keyword_label: data.results[0].target?.title || data.results[0].resource?.title || "",
+            node_type: firstNodeId.startsWith("sector:") ? "sector" : (firstNodeId.startsWith("map-chapter:") ? "chapter" : (firstNodeId.startsWith("kp:") ? "knowledge_point" : "resource")),
+            path: data.results[0].target?.summary || "",
+            search_keywords: []
+          }, "search_result");
         }
       }
     } catch (error) {
@@ -721,7 +1155,15 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
       setHighlightNodes(data?.highlight_nodes || []);
       setHighlightEdges(data?.highlight_edges || []);
       if (data?.highlight_nodes?.length) {
-        setSelectedNodeId(data.highlight_nodes[0]);
+        const firstNodeId = mapNodeIdForSearch(data.highlight_nodes[0], "resource");
+        await navigateToMapEntry({
+          id: firstNodeId,
+          label: firstNodeId,
+          keyword_label: firstNodeId,
+          node_type: firstNodeId.startsWith("sector:") ? "sector" : (firstNodeId.startsWith("map-chapter:") ? "chapter" : (firstNodeId.startsWith("kp:") ? "knowledge_point" : "resource")),
+          path: question,
+          search_keywords: []
+        }, "search_result");
       }
     } catch (error) {
       setGlobalMessage(error.message);
@@ -730,59 +1172,201 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
     }
   }
 
-  function handleSelectSemanticResult(item) {
+  async function handleSelectSemanticResult(item) {
     const nodes = item.highlight_nodes || [];
     const edges = item.highlight_edges || [];
     setHighlightNodes(nodes);
     setHighlightEdges(edges);
     if (nodes.length) {
-      setSelectedNodeId(nodes[0]);
+      const firstNodeId = mapNodeIdForSearch(nodes[0], "resource");
+      await navigateToMapEntry({
+        id: firstNodeId,
+        label: item.target?.title || item.resource?.title || firstNodeId,
+        keyword_label: item.target?.title || item.resource?.title || "",
+        node_type: firstNodeId.startsWith("sector:") ? "sector" : (firstNodeId.startsWith("map-chapter:") ? "chapter" : (firstNodeId.startsWith("kp:") ? "knowledge_point" : "resource")),
+        path: item.target?.summary || "",
+        search_keywords: []
+      }, "search_result");
     }
   }
 
-  function handleMapNodeSelect(node) {
+  function buildMapEntryFromNode(node) {
+    if (!node) {
+      return null;
+    }
+    return {
+      id: node.id,
+      label: node.label,
+      keyword_label: node.keyword_label,
+      node_type: node.node_type,
+      path: node.meta?.path || "",
+      sector_label: node.meta?.sector_label || "",
+      search_keywords: node.search_keywords || [],
+      breadcrumbs_path: node.breadcrumbs_path || []
+    };
+  }
+
+  function buildBreadcrumbEntry(item, breadcrumbs = mapData?.breadcrumbs || []) {
+    if (!item?.id) {
+      return null;
+    }
+    const trail = [];
+    for (const crumb of breadcrumbs) {
+      trail.push({ id: crumb.id, label: crumb.label });
+      if (crumb.id === item.id) break;
+    }
+    return {
+      id: item.id,
+      label: item.label,
+      keyword_label: item.label,
+      node_type: nodeTypeFromId(item.id, item.layer),
+      path: trail.map((crumb) => crumb.label).join(" / "),
+      breadcrumbs_path: trail
+    };
+  }
+
+  function buildEntryFromGraphNode(node) {
+    if (!node?.id) {
+      return null;
+    }
+    const mappedId = mapNodeIdForSearch(node.id, node.node_type);
+    const mapMatch = mapSearchIndex.find((entry) => entry.id === mappedId);
+    if (mapMatch) {
+      return mapMatch;
+    }
+    return {
+      id: mappedId,
+      label: node.label,
+      keyword_label: node.keyword_label,
+      node_type: node.node_type,
+      path: node.meta?.path || "",
+      sector_label: node.meta?.sector_label || "",
+      search_keywords: [
+        ...(node.aliases || []),
+        ...(node.meta?.tags || []),
+        node.meta?.summary || ""
+      ].filter(Boolean),
+      breadcrumbs_path: []
+    };
+  }
+
+  function applyLeafSelection(entry, reason = "focused") {
+    if (!entry?.id) {
+      return;
+    }
+    const pathIds = entry.breadcrumbs_path?.map((item) => item.id).filter(Boolean) || [];
+    setNavigationState(reason === "search_result" ? "search_result" : "focused");
+    setSelectedNodeId(entry.id);
+    setCenterNodeId(entry.id);
+    setHighlightNodes([entry.id]);
+    setHighlightEdges([]);
+    setHighlightPathNodes(pathIds.length ? pathIds : [entry.id]);
+    setActiveMarker(buildMarkerPayload(entry, entry.path || ""));
+  }
+
+  async function focusGraphEntry(entry, reason = "focused") {
+    if (!entry) {
+      return;
+    }
+    if (entry.node_type === "resource") {
+      applyLeafSelection(entry, reason);
+      return;
+    }
+    setFocusedSubtreeRootId(entry.id);
+    setFocusedSubtreeRootType(entry.node_type);
+    await navigateToMapEntry(entry, reason);
+  }
+
+  async function handleMapBackTrack() {
+    const crumbs = mapData?.breadcrumbs || [];
+    if (!crumbs.length || crumbs.length === 1) {
+      handleFitGraphView();
+      return;
+    }
+    const previous = crumbs[crumbs.length - 2];
+    const previousEntry = buildBreadcrumbEntry(previous, crumbs);
+    setActiveMarker(null);
+    await focusGraphEntry(previousEntry, "focused");
+  }
+
+  async function handleMapNodeSelect(node) {
     if (!node) {
       return;
     }
-    setSelectedNodeId(node.id);
-    setHighlightNodes([node.id]);
-    setHighlightEdges([]);
-
-    if (node.node_type === "sector") {
-      setMapFocusId(node.id);
-      setMapZoomLevel(1);
+    const entry = buildMapEntryFromNode(node);
+    if (!entry) {
       return;
     }
-    if (node.node_type === "chapter") {
-      setMapFocusId(node.id);
-      setMapZoomLevel(2);
+    setSearchCandidates([]);
+    if (entry.node_type !== "resource" && (focusedSubtreeRootId || mapData?.focus_id || mapFocusId) === entry.id) {
+      await handleMapBackTrack();
       return;
     }
-    if (node.node_type === "knowledge_point") {
-      setMapFocusId(node.id);
-      setMapZoomLevel(3);
-      return;
-    }
+    await focusGraphEntry(entry, "focused");
   }
 
-  function handleMapFocusNode(nodeId, nextZoom) {
-    setMapFocusId(nodeId || "");
-    setMapZoomLevel(nextZoom);
-    if (nodeId) {
-      setSelectedNodeId(nodeId);
+  async function handleMapFocusNode(nodeId, nextZoom) {
+    if (!nodeId) {
+      handleFitGraphView();
+      return;
     }
+    const visibleNode = (mapData?.visible_nodes || []).find((item) => item.id === nodeId);
+    const breadcrumbNode = (mapData?.breadcrumbs || []).find((item) => item.id === nodeId);
+    const entry = visibleNode
+      ? buildMapEntryFromNode(visibleNode)
+      : buildBreadcrumbEntry(
+          breadcrumbNode || { id: nodeId, label: nodeId, layer: Math.max(0, Number(nextZoom || 1) - 1) },
+          mapData?.breadcrumbs || []
+        );
+    if (entry?.node_type !== "resource" && (focusedSubtreeRootId || mapData?.focus_id || mapFocusId) === entry?.id) {
+      await handleMapBackTrack();
+      return;
+    }
+    await focusGraphEntry(
+      entry || {
+        id: nodeId,
+        label: nodeId,
+        keyword_label: nodeId,
+        node_type: nodeTypeFromId(nodeId, Math.max(0, Number(nextZoom || 1) - 1)),
+        path: ""
+      },
+      "focused"
+    );
   }
 
-  function handleChapterDirectorySelect(chapter) {
+  async function handleGraphNodeSelect(node) {
+    if (!node) {
+      return;
+    }
+    const entry = buildEntryFromGraphNode(node);
+    if (!entry) {
+      return;
+    }
+    setSearchCandidates([]);
+    if (entry.node_type === "resource" || entry.node_type === "section" || entry.node_type === "format") {
+      applyLeafSelection(entry, "focused");
+      return;
+    }
+    if ((focusedSubtreeRootId || mapData?.focus_id || mapFocusId) === entry.id) {
+      await handleMapBackTrack();
+      return;
+    }
+    await focusGraphEntry(entry, "focused");
+  }
+
+  async function handleChapterDirectorySelect(chapter) {
     if (!chapter?.id) {
       return;
     }
-    const nodeId = `map-chapter:${chapter.id}`;
-    setSelectedNodeId(nodeId);
-    setHighlightNodes([nodeId]);
-    setHighlightEdges([]);
-    setMapFocusId(nodeId);
-    setMapZoomLevel(2);
+    await navigateToMapEntry({
+      id: `map-chapter:${chapter.id}`,
+      label: `${chapter.chapter_code} ${chapter.title}`.trim(),
+      keyword_label: chapter.title,
+      node_type: "chapter",
+      path: `${chapter.volume_name || ""} / ${chapter.title}`.trim(),
+      chapter_title: chapter.title,
+      search_keywords: [chapter.chapter_code, ...(chapter.chapter_keywords || [])]
+    }, "focused");
   }
 
   async function handleChapterTreeToggle(chapter) {
@@ -802,7 +1386,7 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
     if (!nextExpanded || !activeWorkspaceId) {
       return;
     }
-    handleChapterDirectorySelect(chapter);
+    void handleChapterDirectorySelect(chapter);
     try {
       const payload = await getRagWorkspaceMap(Number(activeWorkspaceId), {
         token,
@@ -826,13 +1410,18 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
     }
   }
 
-  function handleKnowledgePointSelect(chapterId, kpId) {
-    const nodeId = `kp:${kpId}`;
-    setSelectedNodeId(nodeId);
-    setHighlightNodes([nodeId]);
-    setHighlightEdges([]);
-    setMapFocusId(nodeId);
-    setMapZoomLevel(3);
+  async function handleKnowledgePointSelect(chapterId, kpId) {
+    const chapterEntry = chapterGroups.flatMap((group) => group.chapters || []).find((item) => item.id === chapterId);
+    const kpEntry = (knowledgePointsByChapter[String(chapterId)] || []).find((item) => item.id === kpId);
+    await navigateToMapEntry({
+      id: `kp:${kpId}`,
+      label: `${kpEntry?.kp_code || ""} ${kpEntry?.name || "知识点"}`.trim(),
+      keyword_label: kpEntry?.name || "知识点",
+      node_type: "knowledge_point",
+      path: `${chapterEntry?.volume_name || ""} / ${chapterEntry?.title || ""} / ${kpEntry?.name || ""}`.trim(),
+      chapter_title: chapterEntry?.title || "",
+      search_keywords: [...(kpEntry?.aliases || []), kpEntry?.description || ""]
+    }, "focused");
     setChapterTreeState((prev) => ({
       ...prev,
       [String(chapterId)]: {
@@ -840,6 +1429,31 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
         expanded: true
       }
     }));
+  }
+
+  function scrollToGraphViewport() {
+    graphViewportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function switchGraphViewMode(nextMode) {
+    setGraphViewMode(nextMode);
+    window.setTimeout(() => {
+      scrollToGraphViewport();
+    }, 40);
+  }
+
+  function open3DFullscreen() {
+    if (!webglSupported) {
+      setGlobalMessage("当前设备不支持 3D 图谱");
+      return;
+    }
+    setGraphViewMode("3d");
+    window.setTimeout(() => {
+      scrollToGraphViewport();
+      window.setTimeout(() => {
+        setGraph3DFullscreenTick((prev) => prev + 1);
+      }, 160);
+    }, 40);
   }
 
   function toggleBindResource(resourceId) {
@@ -941,7 +1555,7 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
     }
   }
 
-  if (!token) {
+  if (false && !token) {
     return (
       <section className="card">
         <h2>GraphRAG 工作台</h2>
@@ -969,6 +1583,29 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
 
   return (
     <section className="rag-lite-page">
+      {!token ? (
+        <section className="card discover-preview-login">
+          <h2>GraphRAG 工作台</h2>
+          <p className="hint">当前是本地预览模式，可以直接浏览高中物理图谱、章节树和知识点；登录后再进行上传和管理。</p>
+          <form onSubmit={handleLogin} className="discover-inline-login">
+            <input
+              type="text"
+              placeholder="账号"
+              value={loginForm.email}
+              onChange={(event) => setLoginForm({ ...loginForm, email: event.target.value })}
+              required
+            />
+            <input
+              type="password"
+              placeholder="密码"
+              value={loginForm.password}
+              onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+              required
+            />
+            <button type="submit">登录</button>
+          </form>
+        </section>
+      ) : null}
       <section className="card rag-lite-hero">
         <div className="rag-lite-head-row">
           <div>
@@ -1124,14 +1761,31 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                locateGraphNode();
+                void locateGraphNode();
               }
             }}
           />
-          <button type="button" onClick={locateGraphNode}>定位</button>
+          <button type="button" onClick={() => void locateGraphNode()}>定位</button>
           <button type="button" className="ghost" onClick={handleFitGraphView}>适配视图</button>
           <button type="button" className="ghost" onClick={resetGraphFilters}>重置筛选</button>
         </div>
+
+        {searchCandidates.length ? (
+          <div className="rag-search-candidate-list">
+            {searchCandidates.map((item, index) => (
+              <button
+                key={`${item.id}-${index}`}
+                type="button"
+                className={`rag-search-candidate ${index === 0 ? "is-primary" : ""}`}
+                onClick={() => void navigateToMapEntry(item, "search_result")}
+              >
+                <strong>{item.keyword_label || item.label}</strong>
+                <span>{labelForNodeType(item.node_type)}</span>
+                <small>{item.path || item.chapter_title || item.sector_label || "地图位置"}</small>
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         <div className="rag-filter-block">
           <strong>节点筛选</strong>
@@ -1198,7 +1852,34 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
         </div>
       </section>
 
-      <div className="rag-lite-main">
+<section className="card rag-graph-access-bar">
+        <div>
+          <h3>图谱操作栏</h3>
+          <p className="hint">先在这里切到 2D 或 3D，再进入图谱。点击节点后只保留该节点以下子树，平行节点会自动隐藏。</p>
+        </div>
+        <div className="rag-graph-access-actions">
+          <button type="button" className="ghost" onClick={open3DFullscreen} disabled={!webglSupported}>3D 全屏</button>
+          <button
+            type="button"
+            className={`rag-graph-mode-hero ${graphViewMode === "map" ? "is-active" : ""}`}
+            onClick={() => switchGraphViewMode("map")}
+          >
+            查看 2D 地图
+          </button>
+          <button
+            type="button"
+            className={`rag-graph-mode-hero ${graphViewMode === "3d" ? "is-active" : ""}`}
+            onClick={() => switchGraphViewMode("3d")}
+            disabled={!webglSupported}
+          >
+            查看 3D 图谱
+          </button>
+          <button type="button" className="ghost" onClick={scrollToGraphViewport}>跳到图谱</button>
+          <button type="button" className="ghost" onClick={handleFitGraphView}>返回全貌</button>
+        </div>
+      </section>
+
+      <div ref={graphViewportRef} className="rag-lite-main">
         {graphViewMode === "3d" && webglSupported ? (
           <GraphRenderBoundary
             key={`rag-3d-${activeWorkspaceId}-${graphLimit}`}
@@ -1214,27 +1895,57 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
             )}
           >
             <RagGraph3DCanvas
-              graph={filteredGraph}
+              graph={focusedGraph}
               fitTrigger={graphFitTick}
+              fullscreenTrigger={graph3DFullscreenTick}
               selectedNodeId={selectedNodeId}
-              onSelectNode={setSelectedNodeId}
+              onSelectNode={handleGraphNodeSelect}
               highlightNodes={highlightNodes}
               highlightEdges={highlightEdges}
             />
           </GraphRenderBoundary>
         ) : (
           <RagKnowledgeMapCanvas
-            mapData={mapData}
+            mapData={focusedMapData}
             loading={loadingGraph}
             selectedNodeId={selectedNodeId}
+            centerNodeId={centerNodeId}
+            navigationState={navigationState}
             zoomLevel={mapZoomLevel}
+            activeMarker={activeMarker}
+            highlightPathNodes={highlightPathNodes}
             onZoomChange={setMapZoomLevel}
             onSelectNode={handleMapNodeSelect}
             onFocusNode={handleMapFocusNode}
+            onBackTrack={handleMapBackTrack}
+            onResetView={handleFitGraphView}
           />
         )}
 
         <div className="rag-lite-side">
+          <section className="card rag-kp-directory">
+            <div className="rag-chapter-directory-head">
+              <h3>知识点索引</h3>
+              <span className="hint">点击后直接定位到图谱中的知识点</span>
+            </div>
+            {focusedKnowledgePoints.length ? (
+              <div className="rag-kp-directory-list">
+                {focusedKnowledgePoints.map((kp) => (
+                  <button
+                    key={`directory-kp-${kp.id}`}
+                    type="button"
+                    className="rag-kp-item"
+                    onClick={() => handleKnowledgePointSelect(kp.chapter_id, kp.id)}
+                  >
+                    {kp.kp_code} {kp.name}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="hint">暂无知识点</p>
+            )}
+          </section>
+
           <section className="card rag-book-directory">
             <div className="rag-chapter-directory-head">
               <h3>物理导航目录</h3>
@@ -1349,8 +2060,7 @@ export default function RagWorkspacePage({ token, onLogin, role, setGlobalMessag
             loadingVariants={loadingVariants}
             onExpandRelated={(node) => {
               if (node?.node_type === "knowledge_point") {
-                setMapFocusId(node.id);
-                setMapZoomLevel(3);
+                void handleMapNodeSelect(node);
               }
             }}
           />

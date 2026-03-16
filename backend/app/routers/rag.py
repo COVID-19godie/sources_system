@@ -1147,6 +1147,8 @@ def _make_map_node(
     position: tuple[float, float],
     parent_id: str | None = None,
     sector_key: str | None = None,
+    breadcrumbs_path: list[dict[str, object]] | None = None,
+    search_keywords: list[str] | None = None,
     keyword_label: str | None = None,
     display_priority: int = 0,
     child_count: int = 0,
@@ -1166,6 +1168,8 @@ def _make_map_node(
         layer=layer,
         parent_id=parent_id,
         sector_key=sector_key,
+        breadcrumbs_path=breadcrumbs_path or [],
+        search_keywords=search_keywords or [],
         display_priority=display_priority,
         child_count=child_count,
         is_expandable=is_expandable,
@@ -1177,6 +1181,21 @@ def _make_map_node(
         canonical_key=canonical_key,
         meta=meta or {},
     )
+
+
+def _append_search_tokens(values: list[str], *parts: object) -> list[str]:
+    for part in parts:
+        if isinstance(part, str):
+            token = part.strip()
+            if token and token not in values:
+                values.append(token)
+        elif isinstance(part, (list, tuple, set)):
+            for item in part:
+                if isinstance(item, str):
+                    token = item.strip()
+                    if token and token not in values:
+                        values.append(token)
+    return values
 
 
 def _append_map_edge(
@@ -1426,6 +1445,7 @@ def _build_workspace_map(
             chapter_meta = {
                 "chapter_id": chapter_row.id,
                 "chapter_code": chapter_row.chapter_code,
+                "chapter_keywords": chapter_row.chapter_keywords or [],
                 "grade": chapter_row.grade,
                 "volume_code": chapter_row.volume_code,
                 "sector_label": MAP_SECTOR_LABELS[sector_key],
@@ -1608,6 +1628,7 @@ def _build_workspace_map(
                             "sector_label": MAP_SECTOR_LABELS[sector_key],
                             "chapter_id": chapter_row_id,
                             "chapter_title": chapter_node.label,
+                            "chapter_keywords": chapter_node.meta.get("chapter_keywords") or [],
                             "path": f"{MAP_SECTOR_LABELS[sector_key]} / {chapter_node.label} / {kp_row.name}",
                             "match_score": round(score, 3),
                         },
@@ -1649,6 +1670,52 @@ def _build_workspace_map(
         node.meta["knowledge_tag_count"] = sector_taxonomy_totals[sector_key]["knowledge_tag_count"]
         node.meta["exam_point_count"] = sector_taxonomy_totals[sector_key]["exam_point_count"]
         node.meta["experiment_count"] = sector_taxonomy_totals[sector_key]["experiment_count"]
+
+    for node in nodes_by_id.values():
+        breadcrumbs_path: list[dict[str, object]] = []
+        lineage: list[schemas.RagMapNodeOut] = []
+        cursor = node
+        while cursor and cursor.id != MAP_ROOT_ID:
+            lineage.append(cursor)
+            parent = nodes_by_id.get(cursor.parent_id or "")
+            if parent is None or parent.id == cursor.id:
+                break
+            cursor = parent
+        for item in reversed(lineage):
+            breadcrumbs_path.append(
+                {
+                    "id": item.id,
+                    "label": item.label,
+                    "layer": item.layer,
+                    "node_type": item.node_type,
+                }
+            )
+        node.breadcrumbs_path = breadcrumbs_path
+
+        search_keywords: list[str] = []
+        _append_search_tokens(
+            search_keywords,
+            node.label,
+            node.keyword_label,
+            node.sector_key,
+            [entry.get("label", "") for entry in breadcrumbs_path],
+            node.meta.get("chapter_code"),
+            node.meta.get("chapter_title"),
+            node.meta.get("kp_code"),
+            node.meta.get("summary"),
+            node.meta.get("description"),
+            node.meta.get("related_summary"),
+            node.meta.get("path"),
+            node.meta.get("aliases"),
+            node.meta.get("tags"),
+            node.meta.get("knowledge_tags"),
+            node.meta.get("focus_tags"),
+            node.meta.get("exam_tags"),
+            node.meta.get("problem_tags"),
+            node.meta.get("experiment_tags"),
+            node.meta.get("chapter_keywords"),
+        )
+        node.search_keywords = search_keywords
 
     requested_focus_id = focus_id if focus_id in nodes_by_id else None
     resolved_zoom = max(0, min(3, int(zoom_level)))
@@ -1894,6 +1961,34 @@ def _get_or_create_default_workspace(
     subject: str,
     creator_id: int,
 ) -> models.RagWorkspace:
+    default_names = ["\u9ed8\u8ba4\u5de5\u4f5c\u53f0", "榛樿宸ヤ綔鍙?"]
+    existing = (
+        db.query(models.RagWorkspace)
+        .filter(
+            models.RagWorkspace.stage == stage,
+            models.RagWorkspace.subject == subject,
+        )
+        .order_by(models.RagWorkspace.updated_at.desc(), models.RagWorkspace.id.desc())
+        .all()
+    )
+    if existing:
+        workspace_ids = [row.id for row in existing]
+        sourced_workspace_ids = {
+            row[0]
+            for row in (
+                db.query(models.RagSource.workspace_id)
+                .filter(models.RagSource.workspace_id.in_(workspace_ids))
+                .distinct()
+                .all()
+            )
+        }
+        for row in existing:
+            if row.id in sourced_workspace_ids:
+                return row
+        for row in existing:
+            if row.name in default_names:
+                return row
+
     workspace = (
         db.query(models.RagWorkspace)
         .filter(
@@ -2163,6 +2258,10 @@ def _should_run_quick_extract(
     if latest_done_job is None:
         return True, "no_extract_job"
 
+    latest_done_updated_at = latest_done_job.updated_at
+    if latest_done_updated_at and latest_done_updated_at.tzinfo is None:
+        latest_done_updated_at = latest_done_updated_at.replace(tzinfo=timezone.utc)
+
     latest_resource_update = (
         db.query(models.Resource.updated_at)
         .join(models.RagSource, models.RagSource.resource_id == models.Resource.id)
@@ -2176,10 +2275,12 @@ def _should_run_quick_extract(
         .limit(1)
         .scalar()
     )
-    if latest_resource_update and latest_resource_update > latest_done_job.updated_at:
+    if latest_resource_update and latest_resource_update.tzinfo is None:
+        latest_resource_update = latest_resource_update.replace(tzinfo=timezone.utc)
+    if latest_resource_update and latest_done_updated_at and latest_resource_update > latest_done_updated_at:
         return True, "resources_updated"
 
-    if latest_done_job.updated_at < datetime.now(timezone.utc) - timedelta(hours=12):
+    if latest_done_updated_at and latest_done_updated_at < datetime.now(timezone.utc) - timedelta(hours=12):
         return True, "stale_over_12h"
 
     return False, "fresh"
@@ -2723,12 +2824,31 @@ def quick_bootstrap(
     stage = (payload.stage or "senior").strip() or "senior"
     subject = (payload.subject or "物理").strip() or "物理"
 
-    workspace = _get_or_create_default_workspace(
-        db,
-        stage=stage,
-        subject=subject,
-        creator_id=current_user.id,
-    )
+    workspace = None
+    if settings.LOCAL_PREVIEW_MODE:
+        preview_candidates = (
+            db.query(models.RagWorkspace)
+            .filter(models.RagWorkspace.stage == stage)
+            .order_by(models.RagWorkspace.updated_at.desc(), models.RagWorkspace.id.desc())
+            .all()
+        )
+        for candidate in preview_candidates:
+            has_sources = (
+                db.query(models.RagSource.id)
+                .filter(models.RagSource.workspace_id == candidate.id)
+                .first()
+            )
+            if has_sources:
+                workspace = candidate
+                break
+
+    if workspace is None:
+        workspace = _get_or_create_default_workspace(
+            db,
+            stage=stage,
+            subject=subject,
+            creator_id=current_user.id,
+        )
 
     pruned_count = rag_sync.prune_invalid_sources(db, workspace.id)
 

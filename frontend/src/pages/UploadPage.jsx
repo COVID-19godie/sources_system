@@ -22,16 +22,6 @@ export default function UploadPage({ token, onLogin, onRegister, setGlobalMessag
   const [aiTagRuntime, setAiTagRuntime] = useState("idle");
 
   useEffect(() => {
-    if (!token) {
-      setVolumes([]);
-      setChapters([]);
-      setSections([]);
-      setTags([]);
-      setAiCapability({ loaded: false, enabled: false, auto_enrich: false });
-      setAiTagRuntime("idle");
-      return;
-    }
-
     async function loadOptions() {
       try {
         const [data, aiStatus] = await Promise.all([
@@ -89,6 +79,10 @@ export default function UploadPage({ token, onLogin, onRegister, setGlobalMessag
   }
 
   async function handleUpload(payload) {
+    if (!token) {
+      setGlobalMessage("请先登录后再上传资源");
+      return false;
+    }
     const formData = new FormData();
     formData.append("title", payload.title || "");
     formData.append("type", payload.type);
@@ -143,7 +137,7 @@ export default function UploadPage({ token, onLogin, onRegister, setGlobalMessag
     }
   }
 
-  if (!token) {
+  if (false && !token) {
     return (
       <section className="card two-cols">
         <form onSubmit={handleLogin}>
@@ -191,6 +185,49 @@ export default function UploadPage({ token, onLogin, onRegister, setGlobalMessag
 
   return (
     <>
+      {!token ? (
+        <section className="card two-cols upload-preview-login">
+          <form onSubmit={handleLogin}>
+            <h2>登录后上传</h2>
+            <input
+              type="text"
+              placeholder="账号"
+              value={loginForm.email}
+              onChange={(event) => setLoginForm({ ...loginForm, email: event.target.value })}
+              required
+            />
+            <input
+              type="password"
+              placeholder="密码"
+              value={loginForm.password}
+              onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+              required
+            />
+            <button type="submit">登录</button>
+            <p className="hint">当前是本地预览模式，目录与表单可先浏览；真正上传需要先登录。</p>
+          </form>
+
+          <form onSubmit={handleRegister}>
+            <h2>教师注册</h2>
+            <input
+              type="text"
+              placeholder="账号"
+              value={registerForm.email}
+              onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
+              required
+            />
+            <input
+              type="password"
+              placeholder="密码（至少6位）"
+              value={registerForm.password}
+              onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
+              required
+              minLength={6}
+            />
+            <button type="submit">注册</button>
+          </form>
+        </section>
+      ) : null}
       <section className="card">
         <h2>上传资源</h2>
         <p className="hint">

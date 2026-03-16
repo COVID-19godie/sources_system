@@ -35,27 +35,58 @@ function sizeForNode(node) {
 export default function RagGraph3DCanvas({
   graph,
   fitTrigger = 0,
+  fullscreenTrigger = 0,
   selectedNodeId,
   onSelectNode,
   highlightNodes = [],
   highlightEdges = []
 }) {
+  const sectionRef = useRef(null);
   const graphRef = useRef(null);
   const hasFittedRef = useRef(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [size, setSize] = useState({ width: 960, height: 660 });
+  const [cameraSnapshot, setCameraSnapshot] = useState({ x: 0, y: 0, z: 0 });
   const highlightNodeSet = useMemo(() => new Set(highlightNodes), [highlightNodes]);
   const highlightEdgeSet = useMemo(() => new Set(highlightEdges), [highlightEdges]);
 
+  function syncCameraSnapshot() {
+    const graphApi = graphRef.current;
+    const camera = typeof graphApi?.camera === "function" ? graphApi.camera() : null;
+    if (!camera?.position) {
+      return;
+    }
+    setCameraSnapshot({
+      x: Math.round(camera.position.x),
+      y: Math.round(camera.position.y),
+      z: Math.round(camera.position.z),
+    });
+  }
+
   useEffect(() => {
+    function handleFullscreenChange() {
+      setIsFullscreen(document.fullscreenElement === sectionRef.current);
+    }
+
     function resize() {
-      const width = Math.max(760, Math.min(1360, window.innerWidth - 380));
-      const height = Math.max(560, Math.min(880, window.innerHeight - 250));
+      const width = isFullscreen
+        ? Math.max(960, window.innerWidth - 40)
+        : Math.max(760, Math.min(1360, window.innerWidth - 380));
+      const height = isFullscreen
+        ? Math.max(640, window.innerHeight - 110)
+        : Math.max(560, Math.min(880, window.innerHeight - 250));
       setSize({ width, height });
     }
+
+    handleFullscreenChange();
     resize();
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
     window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      window.removeEventListener("resize", resize);
+    };
+  }, [isFullscreen]);
 
   const graphData = useMemo(() => {
     const nodes = (graph?.nodes || []).map((node) => ({
@@ -82,6 +113,7 @@ export default function RagGraph3DCanvas({
     }
     graphRef.current.zoomToFit(450, 60);
     hasFittedRef.current = true;
+    window.setTimeout(syncCameraSnapshot, 500);
   }, [graphData.nodes.length]);
 
   useEffect(() => {
@@ -89,22 +121,108 @@ export default function RagGraph3DCanvas({
       return;
     }
     graphRef.current.zoomToFit(450, 60);
+    window.setTimeout(syncCameraSnapshot, 500);
   }, [fitTrigger, graphData.nodes.length]);
 
+  useEffect(() => {
+    if (!fullscreenTrigger) {
+      return;
+    }
+    if (document.fullscreenElement === sectionRef.current) {
+      return;
+    }
+    window.setTimeout(() => {
+      void toggleFullscreen();
+    }, 60);
+  }, [fullscreenTrigger]);
+
+  function panCamera(dx = 0, dy = 0, dz = 0) {
+    const graphApi = graphRef.current;
+    if (!graphApi || typeof graphApi.cameraPosition !== "function") {
+      return;
+    }
+    const camera = typeof graphApi.camera === "function" ? graphApi.camera() : null;
+    const controls = typeof graphApi.controls === "function" ? graphApi.controls() : null;
+    const currentPosition = camera?.position;
+    const currentTarget = controls?.target;
+    if (!currentPosition || !currentTarget) {
+      return;
+    }
+    graphApi.cameraPosition(
+      {
+        x: currentPosition.x + dx,
+        y: currentPosition.y + dy,
+        z: currentPosition.z + dz,
+      },
+      {
+        x: currentTarget.x + dx,
+        y: currentTarget.y + dy,
+        z: currentTarget.z + dz,
+      },
+      220
+    );
+    window.setTimeout(syncCameraSnapshot, 260);
+  }
+
+  function resetCameraView() {
+    if (!graphRef.current) {
+      return;
+    }
+    graphRef.current.zoomToFit(450, 60);
+    window.setTimeout(syncCameraSnapshot, 500);
+  }
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement === sectionRef.current) {
+        await document.exitFullscreen();
+        return;
+      }
+      if (sectionRef.current?.requestFullscreen) {
+        await sectionRef.current.requestFullscreen();
+      }
+    } catch {}
+  }
+
   return (
-    <section className="card rag-graph-canvas rag-graph-canvas-3d">
-      <h3>知识图谱画布（3D）</h3>
+    <section ref={sectionRef} className={`card rag-graph-canvas rag-graph-canvas-3d ${isFullscreen ? "is-fullscreen" : ""}`}>
+      <div className="rag-graph-3d-head">
+        <div>
+          <h3>知识图谱画布 3D</h3>
+          <p className="hint">3D 视图支持鼠标旋转、滚轮缩放和全屏查看。</p>
+          <p className="hint rag-graph-3d-metrics">
+            当前子树 {graphData.nodes.length} 节点 / {graphData.links.length} 关系
+          </p>
+          <p className="hint rag-graph-3d-camera">
+            相机 X:{cameraSnapshot.x} Y:{cameraSnapshot.y} Z:{cameraSnapshot.z}
+          </p>
+        </div>
+        <button type="button" className="ghost rag-graph-3d-fullscreen" onClick={toggleFullscreen}>
+          {isFullscreen ? "退出全屏" : "全屏显示"}
+        </button>
+      </div>
       {!graphData.nodes.length ? (
         <div className="rag-empty-canvas">当前筛选条件下暂无节点</div>
       ) : null}
       <div className="rag-3d-wrap">
+        <div className="rag-graph-3d-pan-controls" aria-label="3D 图谱控制杆">
+          <button type="button" onClick={() => panCamera(0, 42, 0)}>↑</button>
+          <button type="button" onClick={() => panCamera(-42, 0, 0)}>←</button>
+          <button type="button" onClick={resetCameraView}>居中</button>
+          <button type="button" onClick={() => panCamera(42, 0, 0)}>→</button>
+          <button type="button" onClick={() => panCamera(0, -42, 0)}>↓</button>
+        </div>
         <ForceGraph3D
           ref={graphRef}
           graphData={graphData}
           width={size.width}
           height={size.height}
           backgroundColor="#f8fafc"
-          nodeLabel={(node) => `${node.keyword_label || node.label || node.id}\n类型：${node.node_type || "-"}`}
+          nodeLabel={(node) => (
+            node.node_type === "knowledge_point"
+              ? (node.keyword_label || node.label || node.id)
+              : `${node.keyword_label || node.label || node.id}\n类型：${node.node_type || "-"}`
+          )}
           nodeColor={(node) => {
             if (node.id === selectedNodeId) return "#f59e0b";
             if (highlightNodeSet.has(node.id)) return "#22c55e";
@@ -124,7 +242,7 @@ export default function RagGraph3DCanvas({
           enableNodeDrag
           enableNavigationControls
           showNavInfo={false}
-          onNodeClick={(node) => onSelectNode?.(node.id)}
+          onNodeClick={(node) => onSelectNode?.(node)}
           onNodeDragEnd={(node) => {
             node.fx = undefined;
             node.fy = undefined;

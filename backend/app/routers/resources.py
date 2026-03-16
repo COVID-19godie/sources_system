@@ -40,6 +40,7 @@ from app.deps import (
     get_current_user,
     get_db_read,
     get_db_write,
+    get_preview_read_user,
 )
 
 
@@ -821,7 +822,7 @@ def list_resources(
 
 @router.get("/ai-status", response_model=schemas.ResourceAiStatusOut)
 def get_ai_status(
-    _: models.User = Depends(get_current_user),
+    _: models.User | None = Depends(get_preview_read_user),
 ):
     return schemas.ResourceAiStatusOut(
         enabled=ai_service.is_enabled(),
@@ -833,7 +834,7 @@ def get_ai_status(
 def semantic_search(
     payload: schemas.SemanticSearchRequest,
     db: Session = Depends(get_db_read),
-    _: models.User = Depends(get_current_user),
+    _: models.User | None = Depends(get_preview_read_user),
 ):
     query_embedding: list[float] | None = None
     if ai_service.is_enabled():
@@ -975,7 +976,7 @@ def chapter_general_resources_groups(
     stage: str = Query(default="senior"),
     subject: str = Query(default="物理"),
     db: Session = Depends(get_db_read),
-    _: models.User = Depends(get_current_user),
+    _: models.User | None = Depends(get_preview_read_user),
 ):
     query = query_by_filters(
         db=db,
@@ -1056,7 +1057,7 @@ def chapter_resources_groups(
     file_format: str | None = Query(default=None),
     difficulty: str | None = Query(default=None),
     db: Session = Depends(get_db_read),
-    _: models.User = Depends(get_current_user),
+    _: models.User | None = Depends(get_preview_read_user),
 ):
     chapter = db.query(models.Chapter).filter(models.Chapter.id == chapter_id).first()
     if not chapter:
@@ -1163,7 +1164,7 @@ def upload_path_preview(
     volume_code: str | None = Query(default=None),
     low_confidence: bool = Query(default=False),
     db: Session = Depends(get_db_read),
-    _: models.User = Depends(get_current_user),
+    _: models.User | None = Depends(get_preview_read_user),
 ):
     chapter_code = None
     section_code = None

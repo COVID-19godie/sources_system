@@ -51,15 +51,6 @@ export default function DiscoverPage({ token, role, searchKeyword, onLogin, setG
   const effectiveKeyword = (searchKeyword || "").trim() || quickKeyword.trim();
 
   useEffect(() => {
-    if (!token) {
-      setChapters([]);
-      setSections([]);
-      setTags([]);
-      setQuickQueries([]);
-      setGroupData([]);
-      return;
-    }
-
     async function loadOptions() {
       try {
         const [data, kpRows] = await Promise.all([
@@ -76,6 +67,9 @@ export default function DiscoverPage({ token, role, searchKeyword, onLogin, setG
 
         const chapterItems = data?.chapters || [];
         setChapters(chapterItems);
+        setExpandedChapters(
+          Object.fromEntries((chapterItems || []).map((item) => [String(item.id), true]))
+        );
         setSections(data?.sections || []);
         setTags(data?.tags || []);
         setQuickQueries(data?.quick_queries || []);
@@ -102,7 +96,7 @@ export default function DiscoverPage({ token, role, searchKeyword, onLogin, setG
   }, [token, setGlobalMessage, activeChapterId]);
 
   useEffect(() => {
-    if (!token || !activeChapterId) {
+    if (!activeChapterId) {
       setGroupData([]);
       return;
     }
@@ -178,6 +172,16 @@ export default function DiscoverPage({ token, role, searchKeyword, onLogin, setG
     return Array.from(new Set([...fromTags, ...quickQueries])).slice(0, 14);
   }, [tags, quickQueries]);
 
+  const activeChapter = useMemo(
+    () => chapters.find((item) => item.id === activeChapterId) || null,
+    [chapters, activeChapterId]
+  );
+
+  const activeKnowledgePoints = useMemo(
+    () => knowledgePointsByChapter[String(activeChapterId || "")] || [],
+    [knowledgePointsByChapter, activeChapterId]
+  );
+
   async function toggleChapterTree(chapter) {
     if (!chapter?.id) return;
     const chapterId = String(chapter.id);
@@ -231,7 +235,7 @@ export default function DiscoverPage({ token, role, searchKeyword, onLogin, setG
     }
   }
 
-  if (!token) {
+  if (false && !token) {
     return (
       <section className="card">
         <h2>资源发现</h2>
@@ -259,6 +263,29 @@ export default function DiscoverPage({ token, role, searchKeyword, onLogin, setG
 
   return (
     <section className="discover-page chapter-layout">
+      {!token ? (
+        <section className="card discover-preview-login">
+          <h2>资源发现</h2>
+          <p className="hint">当前是本地预览模式，可以先浏览教材目录、资源分组和语义检索；登录后再使用上传与管理能力。</p>
+          <form onSubmit={handleLogin} className="discover-inline-login">
+            <input
+              type="text"
+              placeholder="账号"
+              value={loginForm.email}
+              onChange={(event) => setLoginForm({ ...loginForm, email: event.target.value })}
+              required
+            />
+            <input
+              type="password"
+              placeholder="密码"
+              value={loginForm.password}
+              onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+              required
+            />
+            <button type="submit">登录</button>
+          </form>
+        </section>
+      ) : null}
       <aside className="chapter-sidebar card">
         <h3>高中物理导航</h3>
         <div className="chapter-list">
@@ -317,6 +344,35 @@ export default function DiscoverPage({ token, role, searchKeyword, onLogin, setG
       </aside>
 
       <div className="chapter-main">
+        <section className="card discover-kp-panel">
+          <div className="discover-kp-head">
+            <div>
+              <h3>当前章节知识点</h3>
+              <p className="hint">
+                {activeChapter ? `${activeChapter.chapter_code} ${activeChapter.title}` : "选择左侧章节后查看知识点"}
+              </p>
+            </div>
+            <strong>{activeKnowledgePoints.length}</strong>
+          </div>
+          {activeKnowledgePoints.length ? (
+            <div className="discover-kp-cloud">
+              {activeKnowledgePoints.map((kp) => (
+                <button
+                  key={kp.id}
+                  type="button"
+                  className="discover-kp-chip"
+                  onClick={() => setQuickKeyword(`${kp.kp_code} ${kp.name}`.trim())}
+                >
+                  <strong>{kp.kp_code}</strong>
+                  <span>{kp.name}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="hint">当前章节暂无知识点数据</p>
+          )}
+        </section>
+
         <section className="card">
           <h3>AI语义检索</h3>
           <QuickSuggestionChips

@@ -1,4 +1,10 @@
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL
+  || (
+    typeof window !== "undefined"
+      && (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost")
+      ? `http://${window.location.hostname}:8006`
+      : ""
+  );
 
 export function makeApiUrl(path) {
   return `${API_BASE}${path}`;

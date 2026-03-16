@@ -49,9 +49,24 @@ def get_current_user_optional(
     return db.query(models.User).filter(models.User.email == email).first()
 
 
+def _get_local_preview_user(db: Session) -> models.User | None:
+    preview_user = db.query(models.User).filter(models.User.email == "preview@local").first()
+    if preview_user is not None:
+        return preview_user
+    return (
+        db.query(models.User)
+        .filter(models.User.role.in_([models.UserRole.teacher, models.UserRole.admin]))
+        .order_by(models.User.id.asc())
+        .first()
+    )
+
+
 def get_current_user(
     current_user: models.User | None = Depends(get_current_user_optional),
+    db: Session = Depends(get_db_write),
 ) -> models.User:
+    if current_user is None and settings.LOCAL_PREVIEW_MODE:
+        current_user = _get_local_preview_user(db)
     if current_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -62,9 +77,10 @@ def get_current_user(
 
 def get_preview_read_user(
     current_user: models.User | None = Depends(get_current_user_optional),
+    db: Session = Depends(get_db_write),
 ) -> models.User | None:
     if settings.LOCAL_PREVIEW_MODE:
-        return current_user
+        return current_user or _get_local_preview_user(db)
     if current_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

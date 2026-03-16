@@ -960,6 +960,8 @@ class RagMapNodeOut(BaseModel):
     layer: int
     parent_id: str | None = None
     sector_key: str | None = None
+    breadcrumbs_path: list[dict[str, Any]] = Field(default_factory=list)
+    search_keywords: list[str] = Field(default_factory=list)
     display_priority: int = 0
     child_count: int = 0
     is_expandable: bool = False
